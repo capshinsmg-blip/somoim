@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2030 안산 소모임 관리툴</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#f0f0f5;color:#333}
+
+.header{background:#5b5bd6;color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.header h1{font-size:18px;font-weight:700}
+.header .sub{font-size:12px;opacity:.8;margin-top:2px}
+
+.tabs{background:#fff;display:flex;border-bottom:2px solid #e5e5e5;padding:0 24px;overflow-x:auto}
+.tab-btn{padding:14px 18px;border:none;background:none;font-size:14px;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s}
+.tab-btn.active{color:#5b5bd6;border-bottom-color:#5b5bd6;font-weight:600}
+
+.content{padding:20px;max-width:1200px;margin:0 auto}
+.tab-content{display:none}.tab-content.active{display:block}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+.card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-label{font-size:12px;color:#888;margin-bottom:6px}
+.card-value{font-size:30px;font-weight:700;color:#5b5bd6}
+.card-sub{font-size:11px;color:#bbb;margin-top:3px}
+
+.section{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:18px}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.section-title{font-size:15px;font-weight:600}
+
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s}
+.btn-primary{background:#5b5bd6;color:#fff}.btn-primary:hover{background:#4949c4}
+.btn-secondary{background:#f0f0f5;color:#333}.btn-secondary:hover{background:#e0e0ee}
+.btn-danger{background:#ff6b6b;color:#fff}.btn-danger:hover{background:#ee5555}
+.btn-sm{padding:4px 10px;font-size:12px}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:9px 12px;background:#f8f8fc;color:#777;font-weight:600;font-size:12px;border-bottom:1px solid #e5e5e5}
+td{padding:9px 12px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaff}
+
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.b-active{background:#d3f9d8;color:#2f9e44}
+.b-sanction{background:#ffe3e3;color:#c92a2a}
+.b-recruit{background:#dbe4ff;color:#364fc7}
+.b-ongoing{background:#fff3bf;color:#e67700}
+.b-done{background:#f0f0f0;color:#888}
+.b-attend{background:#d3f9d8;color:#2f9e44}
+.b-absent{background:#f0f0f0;color:#888}
+.b-dup{background:#ffe3e3;color:#c92a2a}
+
+.search-bar{width:100%;padding:9px 14px;border:1px solid #e5e5e5;border-radius:8px;font-size:13px;margin-bottom:14px;outline:none}
+.search-bar:focus{border-color:#5b5bd6}
+
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1000;justify-content:center;align-items:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:26px;width:90%;max-width:460px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:18px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500}
+.form-input{width:100%;padding:9px 12px;border:1px solid #e5e5e5;border-radius:8px;font-size:13px;outline:none}
+.form-input:focus{border-color:#5b5bd6}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+
+.alert{padding:11px 14px;border-radius:8px;margin-bottom:14px;font-size:13px}
+.alert-warn{background:#fff3bf;color:#e67700;border:1px solid #ffd43b}
+.alert-err{background:#ffe3e3;color:#c92a2a;border:1px solid #ffa8a8}
+.alert-ok{background:#d3f9d8;color:#2f9e44}
+
+.loading{text-align:center;padding:36px;color:#aaa;font-size:14px}
+.empty{text-align:center;padding:36px;color:#bbb;font-size:13px}
+.dup-row td{background:#fff5f5!important}
+
+.toast{position:fixed;bottom:24px;right:24px;background:#333;color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+
+select.form-input{cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🏠 2030 안산 소모임 관리툴</h1>
+    <div class="sub">운영진 전용 내부 관리 시스템</div>
+  </div>
+  <button class="btn btn-secondary btn-sm" onclick="initSheets()">⚙️ 시트 초기화</button>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('dashboard',this)">📊 대시보드</button>
+  <button class="tab-btn" onclick="showTab('members',this)">👥 회원 관리</button>
+  <button class="tab-btn" onclick="showTab('events',this)">📅 모임 관리</button>
+  <button class="tab-btn" onclick="showTab('duplicates',this)">⚠️ 중복 신청</button>
+</div>
+
+<div class="content">
+
+  <!-- 대시보드 -->
+  <div id="tab-dashboard" class="tab-content active">
+    <div class="cards">
+      <div class="card"><div class="card-label">전체 회원</div><div class="card-value" id="s-members">-</div><div class="card-sub">활성 회원 기준</div></div>
+      <div class="card"><div class="card-label">모집중 모임</div><div class="card-value" id="s-recruit">-</div><div class="card-sub">현재 신청 가능</div></div>
+      <div class="card"><div class="card-label">전체 신청</div><div class="card-value" id="s-regs">-</div><div class="card-sub">누적 신청 건수</div></div>
+      <div class="card"><div class="card-label">제재 회원</div><div class="card-value" id="s-sanc" style="color:#ff6b6b">-</div><div class="card-sub">현재 제재 인원</div></div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-title">📋 최근 모임 현황</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>모임명</th><th>날짜</th><th>장소</th><th>신청인원</th><th>상태</th></tr></thead>
+          <tbody id="dash-events"><tr><td colspan="5" class="loading">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 회원 관리 -->
+  <div id="tab-members" class="tab-content">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">👥 회원 목록</div>
+        <button class="btn btn-primary" onclick="openModal('addMember')">+ 회원 등록</button>
+      </div>
+      <input type="text" class="search-bar" placeholder="이름, 거주지, 취미로 검색..." oninput="filterMembers(this.value)">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>이름</th><th>나이</th><th>전화번호</th><th>거주지</th><th>취미</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead>
+          <tbody id="members-table"><tr><td colspan="8" class="loading">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 모임 관리 -->
+  <div id="tab-events" class="tab-content">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">📅 모임 목록</div>
+        <button class="btn btn-primary" onclick="openModal('addEvent')">+ 모임 등록</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>모임명</th><th>날짜</th><th>장소</th><th>최대인원</th><th>리더</th><th>신청자</th><th>상태</th><th>변경</th></tr></thead>
+          <tbody id="events-table"><tr><td colspan="8" class="loading">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">📝 신청 현황</div>
+        <button class="btn btn-primary" onclick="openModal('addReg')">+ 신청 등록</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>회원명</th><th>모임명</th><th>신청일</th><th>출석</th><th>변경</th></tr></thead>
+          <tbody id="regs-table"><tr><td colspan="5" class="loading">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 중복 신청 -->
+  <div id="tab-duplicates" class="tab-content">
+    <div class="alert alert-warn">⚠️ 모집중·진행중 모임에 중복 신청한 회원을 자동으로 감지합니다.</div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">중복 신청 현황</div>
+        <button class="btn btn-secondary" onclick="loadDuplicates()">🔄 새로고침</button>
+      </div>
+      <div id="dup-content"><div class="loading">확인 중...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 회원 등록 모달 -->
+<div id="modal-addMember" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">👤 회원 등록</div>
+    <div class="form-group"><label class="form-label">이름 *</label><input class="form-input" id="m-name" placeholder="홍길동"></div>
+    <div class="form-group"><label class="form-label">나이 *</label><input class="form-input" id="m-age" type="number" placeholder="25"></div>
+    <div class="form-group"><label class="form-label">전화번호 *</label><input class="form-input" id="m-phone" placeholder="010-0000-0000"></div>
+    <div class="form-group"><label class="form-label">거주지 *</label><input class="form-input" id="m-loc" placeholder="고잔동"></div>
+    <div class="form-group"><label class="form-label">취미/관심사</label><input class="form-input" id="m-hobby" placeholder="맛집탐방, 운동"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addMember')">취소</button>
+      <button class="btn btn-primary" onclick="submitMember()">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- 모임 등록 모달 -->
+<div id="modal-addEvent" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">📅 모임 등록</div>
+    <div class="form-group"><label class="form-label">모임명 *</label><input class="form-input" id="e-name" placeholder="7월 맛집 탐방 벙"></div>
+    <div class="form-group"><label class="form-label">날짜 *</label><input class="form-input" id="e-date" type="date"></div>
+    <div class="form-group"><label class="form-label">장소 *</label><input class="form-input" id="e-loc" placeholder="안산 중앙역 근처"></div>
+    <div class="form-group"><label class="form-label">최대 인원</label><input class="form-input" id="e-max" type="number" placeholder="10"></div>
+    <div class="form-group"><label class="form-label">리더</label><input class="form-input" id="e-leader" placeholder="홍길동"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addEvent')">취소</button>
+      <button class="btn btn-primary" onclick="submitEvent()">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- 신청 등록 모달 -->
+<div id="modal-addReg" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">📝 신청 등록</div>
+    <div id="dup-warn" class="alert alert-err" style="display:none">⚠️ 이 회원은 이미 진행중인 모임에 신청되어 있습니다!</div>
+    <div class="form-group"><label class="form-label">회원명 *</label><input class="form-input" id="r-member" placeholder="이름 입력" oninput="dupCheck(this.value)"></div>
+    <div class="form-group">
+      <label class="form-label">모임 *</label>
+      <select class="form-input" id="r-event"><option value="">모임 선택</option></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addReg')">취소</button>
+      <button class="btn btn-primary" onclick="submitReg()">등록</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+let M=[], E=[], R=[];
+
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='dashboard') loadDashboard();
+  if(id==='members') loadMembers();
+  if(id==='events') loadEventsTab();
+  if(id==='duplicates') loadDuplicates();
+}
+
+function loadAll(cb) {
+  let n=0;
+  const done=()=>{ if(++n===3 && cb) cb(); };
+  google.script.run.withSuccessHandler(d=>{M=d;done();}).getMembers();
+  google.script.run.withSuccessHandler(d=>{E=d;done();}).getEvents();
+  google.script.run.withSuccessHandler(d=>{R=d;done();}).getRegistrations();
+}
+
+function loadDashboard() {
+  loadAll(()=>{
+    document.getElementById('s-members').textContent = M.filter(m=>m.status==='활성').length;
+    document.getElementById('s-recruit').textContent = E.filter(e=>e.status==='모집중').length;
+    document.getElementById('s-regs').textContent = R.length;
+    document.getElementById('s-sanc').textContent = M.filter(m=>m.status==='제재').length;
+
+    const tbody = document.getElementById('dash-events');
+    if(!E.length){ tbody.innerHTML='<tr><td colspan="5" class="empty">등록된 모임이 없습니다</td></tr>'; return; }
+    tbody.innerHTML = E.slice(0,6).map(e=>{
+      const cnt = R.filter(r=>r.eventName===e.name).length;
+      return `<tr><td><b>${e.name}</b></td><td>${e.date}</td><td>${e.location}</td><td>${cnt}명 / ${e.maxMembers||'∞'}명</td><td>${bE(e.status)}</td></tr>`;
+    }).join('');
+  });
+}
+
+function loadMembers() {
+  google.script.run.withSuccessHandler(d=>{M=d; renderMembers(d);}).getMembers();
+}
+
+function renderMembers(list) {
+  const tb = document.getElementById('members-table');
+  if(!list.length){ tb.innerHTML='<tr><td colspan="8" class="empty">등록된 회원이 없습니다</td></tr>'; return; }
+  tb.innerHTML = list.map(m=>`
+    <tr>
+      <td><b>${m.name}</b></td><td>${m.age}</td><td>${m.phone}</td>
+      <td>${m.location}</td><td>${m.hobby}</td><td>${m.joinDate}</td>
+      <td>${bM(m.status)}</td>
+      <td>${m.status==='활성'
+        ? `<button class="btn btn-danger btn-sm" onclick="sanctionMember(${m.id},'${m.name}')">제재</button>`
+        : `<button class="btn btn-secondary btn-sm" onclick="restoreMember(${m.id})">복구</button>`
+      }</td>
+    </tr>`).join('');
+}
+
+function filterMembers(q) {
+  renderMembers(M.filter(m=>m.name.includes(q)||m.location.includes(q)||m.hobby.includes(q)));
+}
+
+function loadEventsTab() {
+  let n=0;
+  const done=()=>{ if(++n===2){ renderEvents(); renderRegs(); }};
+  google.script.run.withSuccessHandler(d=>{E=d;done();}).getEvents();
+  google.script.run.withSuccessHandler(d=>{R=d;done();}).getRegistrations();
+}
+
+function renderEvents() {
+  const tb = document.getElementById('events-table');
+  if(!E.length){ tb.innerHTML='<tr><td colspan="8" class="empty">등록된 모임이 없습니다</td></tr>'; return; }
+  tb.innerHTML = E.map(e=>{
+    const cnt = R.filter(r=>r.eventName===e.name).length;
+    return `<tr>
+      <td><b>${e.name}</b></td><td>${e.date}</td><td>${e.location}</td>
+      <td>${e.maxMembers||'-'}</td><td>${e.leader||'-'}</td><td>${cnt}명</td>
+      <td>${bE(e.status)}</td>
+      <td><select class="form-input" style="padding:4px;font-size:12px;width:86px" onchange="changeEventStatus(${e.id},this.value)">
+        <option ${e.status==='모집중'?'selected':''}>모집중</option>
+        <option ${e.status==='진행중'?'selected':''}>진행중</option>
+        <option ${e.status==='완료'?'selected':''}>완료</option>
+      </select></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderRegs() {
+  const tb = document.getElementById('regs-table');
+  if(!R.length){ tb.innerHTML='<tr><td colspan="5" class="empty">신청 내역이 없습니다</td></tr>'; return; }
+  tb.innerHTML = R.map(r=>`
+    <tr>
+      <td>${r.memberName}</td><td>${r.eventName}</td><td>${r.applyDate}</td>
+      <td>${bA(r.attendance)}</td>
+      <td><select class="form-input" style="padding:4px;font-size:12px;width:76px" onchange="changeAttendance(${r.id},this.value)">
+        <option ${r.attendance==='미출석'?'selected':''}>미출석</option>
+        <option ${r.attendance==='출석'?'selected':''}>출석</option>
+        <option ${r.attendance==='불참'?'selected':''}>불참</option>
+      </select></td>
+    </tr>`).join('');
+}
+
+function loadDuplicates() {
+  document.getElementById('dup-content').innerHTML='<div class="loading">확인 중...</div>';
+  let n=0;
+  const done=()=>{
+    if(++n<2) return;
+    const activeNames = E.filter(e=>e.status==='모집중'||e.status==='진행중').map(e=>e.name);
+    const map={};
+    R.forEach(r=>{ if(activeNames.includes(r.eventName)){ if(!map[r.memberName]) map[r.memberName]=[]; map[r.memberName].push(r.eventName); }});
+    const dups = Object.entries(map).filter(([,ev])=>ev.length>1);
+    const el = document.getElementById('dup-content');
+    if(!dups.length){ el.innerHTML='<div class="empty">✅ 중복 신청된 회원이 없습니다</div>'; return; }
+    el.innerHTML=`<div class="alert alert-err">⚠️ 중복 신청 회원 ${dups.length}명 발견</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>회원명</th><th>중복 신청 모임</th><th>건수</th></tr></thead>
+      <tbody>${dups.map(([name,ev])=>`<tr class="dup-row"><td><b>${name}</b></td><td>${ev.join(', ')}</td><td><span class="badge b-dup">${ev.length}건</span></td></tr>`).join('')}</tbody>
+    </table></div>`;
+  };
+  google.script.run.withSuccessHandler(d=>{E=d;done();}).getEvents();
+  google.script.run.withSuccessHandler(d=>{R=d;done();}).getRegistrations();
+}
+
+function openModal(id) {
+  if(id==='addReg'){
+    document.getElementById('r-event').innerHTML='<option value="">모임 선택</option>'+
+      E.filter(e=>e.status==='모집중').map(e=>`<option>${e.name}</option>`).join('');
+    document.getElementById('dup-warn').style.display='none';
+  }
+  document.getElementById('modal-'+id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById('modal-'+id).classList.remove('open');
+  document.querySelectorAll('#modal-'+id+' .form-input').forEach(el=>el.value='');
+}
+
+function submitMember() {
+  const d={name:$('m-name'),age:$('m-age'),phone:$('m-phone'),location:$('m-loc'),hobby:$('m-hobby')};
+  if(!d.name||!d.age||!d.phone||!d.location){toast('필수 항목을 입력해주세요');return;}
+  google.script.run.withSuccessHandler(()=>{closeModal('addMember');loadMembers();toast('회원이 등록됐어요 ✅');}).addMember(d);
+}
+
+function submitEvent() {
+  const d={name:$('e-name'),date:$('e-date'),location:$('e-loc'),maxMembers:$('e-max'),leader:$('e-leader')};
+  if(!d.name||!d.date||!d.location){toast('필수 항목을 입력해주세요');return;}
+  google.script.run.withSuccessHandler(()=>{closeModal('addEvent');loadEventsTab();toast('모임이 등록됐어요 ✅');}).addEvent(d);
+}
+
+function submitReg() {
+  const d={memberName:$('r-member'),eventName:document.getElementById('r-event').value};
+  if(!d.memberName||!d.eventName){toast('필수 항목을 입력해주세요');return;}
+  google.script.run.withSuccessHandler(r=>{
+    if(r.success){closeModal('addReg');loadEventsTab();toast('신청이 등록됐어요 ✅');}
+    else toast('⚠️ '+r.message);
+  }).addRegistration(d);
+}
+
+function changeEventStatus(id,s){
+  google.script.run.withSuccessHandler(()=>toast('모임 상태 변경 완료')).updateEventStatus(id,s);
+}
+function changeAttendance(id,s){
+  google.script.run.withSuccessHandler(()=>toast('출석 처리 완료')).markAttendance(id,s);
+}
+function sanctionMember(id,name){
+  if(!confirm(name+' 회원을 제재 처리할까요?')) return;
+  google.script.run.withSuccessHandler(()=>{loadMembers();toast('제재 처리됐어요');}).updateMemberStatus(id,'제재');
+}
+function restoreMember(id){
+  google.script.run.withSuccessHandler(()=>{loadMembers();toast('복구 처리됐어요');}).updateMemberStatus(id,'활성');
+}
+function dupCheck(name){
+  if(!name){document.getElementById('dup-warn').style.display='none';return;}
+  const activeNames=E.filter(e=>e.status==='모집중'||e.status==='진행중').map(e=>e.name);
+  const isDup=R.some(r=>r.memberName===name&&activeNames.includes(r.eventName));
+  document.getElementById('dup-warn').style.display=isDup?'block':'none';
+}
+function initSheets(){
+  if(!confirm('구글 시트 탭을 초기화할까요? 기존 데이터는 유지됩니다.')) return;
+  google.script.run.withSuccessHandler(()=>toast('시트 초기화 완료 ✅')).initSheets();
+}
+
+function $(id){return document.getElementById(id).value.trim();}
+function bM(s){return s==='활성'?'<span class="badge b-active">활성</span>':'<span class="badge b-sanction">제재</span>';}
+function bE(s){const m={'모집중':'b-recruit','진행중':'b-ongoing','완료':'b-done'};return`<span class="badge ${m[s]||''}">${s}</span>`;}
+function bA(s){return s==='출석'?'<span class="badge b-attend">출석</span>':s==='불참'?'<span class="badge b-sanction">불참</span>':'<span class="badge b-absent">미출석</span>';}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+loadDashboard();
+</script>
+</body>
+</html>
