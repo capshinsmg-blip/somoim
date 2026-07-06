@@ -19,10 +19,11 @@ body{font-family:'Segoe UI',sans-serif;background:#f0f0f5;color:#333}
 .content{padding:20px;max-width:1200px;margin:0 auto}
 .tab-content{display:none}.tab-content.active{display:block}
 
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
 .card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .card-label{font-size:12px;color:#888;margin-bottom:6px}
 .card-value{font-size:30px;font-weight:700;color:#5b5bd6}
+.card-value.warn{color:#f59f00}
 .card-sub{font-size:11px;color:#bbb;margin-top:3px}
 
 .section{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:18px}
@@ -33,7 +34,12 @@ body{font-family:'Segoe UI',sans-serif;background:#f0f0f5;color:#333}
 .btn-primary{background:#5b5bd6;color:#fff}.btn-primary:hover{background:#4949c4}
 .btn-secondary{background:#f0f0f5;color:#333}.btn-secondary:hover{background:#e0e0ee}
 .btn-danger{background:#ff6b6b;color:#fff}.btn-danger:hover{background:#ee5555}
+.btn-success{background:#40c057;color:#fff}.btn-success:hover{background:#2f9e44}
 .btn-sm{padding:4px 10px;font-size:12px}
+
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-btn{padding:6px 14px;border-radius:20px;border:1px solid #e5e5e5;background:#fff;cursor:pointer;font-size:12px;color:#666;transition:all .2s}
+.filter-btn.active{background:#5b5bd6;color:#fff;border-color:#5b5bd6}
 
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
@@ -48,22 +54,37 @@ tr:hover td{background:#fafaff}
 .b-recruit{background:#dbe4ff;color:#364fc7}
 .b-ongoing{background:#fff3bf;color:#e67700}
 .b-done{background:#f0f0f0;color:#888}
+.b-warn{background:#fff3bf;color:#7d5c00}
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{font-size:11px;font-weight:600;color:#888;padding:8px 10px;text-align:left;border-bottom:1.5px solid #e5e5e5;background:#fafafa}
+.data-table td{padding:9px 10px;border-bottom:.5px solid #f0f0f0;vertical-align:middle;color:#333}
+.data-table tr:last-child td{border-bottom:none}
 .b-attend{background:#d3f9d8;color:#2f9e44}
 .b-absent{background:#f0f0f0;color:#888}
 .b-dup{background:#ffe3e3;color:#c92a2a}
+.b-pending{background:#fff3bf;color:#e67700}
+.b-approved{background:#d3f9d8;color:#2f9e44}
+.b-rejected{background:#ffe3e3;color:#c92a2a}
 
 .search-bar{width:100%;padding:9px 14px;border:1px solid #e5e5e5;border-radius:8px;font-size:13px;margin-bottom:14px;outline:none}
 .search-bar:focus{border-color:#5b5bd6}
 
 .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1000;justify-content:center;align-items:center}
 .modal-overlay.open{display:flex}
-.modal{background:#fff;border-radius:16px;padding:26px;width:90%;max-width:460px;max-height:90vh;overflow-y:auto}
+.modal{background:#fff;border-radius:16px;padding:26px;width:90%;max-width:480px;max-height:90vh;overflow-y:auto}
 .modal-title{font-size:17px;font-weight:700;margin-bottom:18px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-group{margin-bottom:14px}
 .form-label{display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500}
 .form-input{width:100%;padding:9px 12px;border:1px solid #e5e5e5;border-radius:8px;font-size:13px;outline:none}
 .form-input:focus{border-color:#5b5bd6}
 .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+
+.detail-box{background:#f8f8fc;border-radius:8px;padding:14px;margin-bottom:14px}
+.detail-row{display:flex;gap:8px;margin-bottom:8px;font-size:13px}
+.detail-row:last-child{margin-bottom:0}
+.detail-label{color:#888;min-width:80px;font-size:12px}
+.detail-value{color:#333;font-weight:500}
 
 .alert{padding:11px 14px;border-radius:8px;margin-bottom:14px;font-size:13px}
 .alert-warn{background:#fff3bf;color:#e67700;border:1px solid #ffd43b}
@@ -78,9 +99,59 @@ tr:hover td{background:#fafaff}
 .toast.show{opacity:1}
 
 select.form-input{cursor:pointer}
+
+.atab-bar{display:flex;gap:0;margin-bottom:16px;border-radius:8px;overflow:hidden;border:1px solid #e5e5e5}
+.atab{flex:1;padding:9px;border:none;background:#f8f8fc;font-size:13px;cursor:pointer;color:#666;font-weight:500;transition:all .2s}
+.atab.active{background:#5b5bd6;color:#fff}
+.remind-card{background:#f8f8fc;border-radius:10px;padding:14px;margin-bottom:12px}
+.remind-card-title{font-size:13px;font-weight:600;color:#5b5bd6;margin-bottom:12px}
+.notice-card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:20px;margin-bottom:16px}
+.notice-card-title{font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:6px}
+.notice-card-desc{font-size:13px;color:#777;margin:0 0 12px}
+.remind-msg-label{font-size:11px;color:#888;margin-bottom:5px}
+.remind-ta{width:100%;padding:9px 12px;border:1px solid #e5e5e5;border-radius:8px;font-size:12px;line-height:1.6;font-family:inherit;resize:none;background:#fff;height:160px}
+.remind-copy-row{display:flex;justify-content:flex-end;margin-top:6px;margin-bottom:12px}
+
+.member-row{cursor:pointer;transition:background .15s}
+.member-row:hover td{background:#f5f5ff!important}
+.member-row.expanded td{background:#eeeeff!important}
+.member-detail-row{display:none}
+.member-detail-row.open{display:table-row}
+.member-avatar{width:32px;height:32px;border-radius:50%;background:#ede9ff;color:#5b5bd6;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.expand-arrow{color:#ccc;font-size:10px;transition:transform .2s;margin-left:auto}
+.history-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#fff;border-radius:8px;border:1px solid #e5e5e5;margin-bottom:4px}
+
+.event-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;margin-bottom:8px;overflow:hidden;transition:box-shadow .15s}
+.event-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.event-card-header{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
+.event-card-header:hover{background:#fafaff}
+.event-card-name{font-weight:600;font-size:14px;flex:1}
+.event-card-meta{font-size:12px;color:#888;display:flex;align-items:center;gap:16px;flex-shrink:0}
+.event-card-body{display:none;padding:14px 16px;border-top:1px solid #f0f0f0;background:#fafaff}
+.event-card-body.open{display:block}
+.event-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.event-detail-item{background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #e5e5e5}
+.event-detail-label{font-size:10px;color:#999;margin-bottom:3px;font-weight:600}
+.event-detail-value{font-size:13px;font-weight:600;color:#333}
+</style>
+<style>
+#auth-overlay{position:fixed;inset:0;z-index:9999;background:#f5f5ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-family:sans-serif}
+#auth-overlay .ao-box{background:#fff;border-radius:16px;border:1px solid #e0e0f0;padding:40px 48px;text-align:center;max-width:400px;width:90%}
+#auth-overlay .ao-icon{font-size:40px;margin-bottom:16px}
+#auth-overlay .ao-title{font-size:18px;font-weight:600;color:#222;margin-bottom:8px}
+#auth-overlay .ao-sub{font-size:13px;color:#888;line-height:1.6}
+#auth-overlay .ao-email{display:inline-block;margin-top:10px;font-size:12px;background:#f0f0f8;color:#5b5bd6;padding:4px 12px;border-radius:20px}
 </style>
 </head>
 <body>
+
+<div id="auth-overlay">
+  <div class="ao-box">
+    <div class="ao-icon">🔐</div>
+    <div class="ao-title" id="ao-title">접근 권한 확인 중...</div>
+    <div class="ao-sub" id="ao-sub">잠시만 기다려주세요.</div>
+  </div>
+</div>
 
 <div class="header">
   <div>
@@ -92,9 +163,13 @@ select.form-input{cursor:pointer}
 
 <div class="tabs">
   <button class="tab-btn active" onclick="showTab('dashboard',this)">📊 대시보드</button>
+  <button class="tab-btn" onclick="showTab('applications',this)">📨 가입신청</button>
+  <button class="tab-btn" onclick="showTab('leaders',this)">🙋 리더신청</button>
   <button class="tab-btn" onclick="showTab('members',this)">👥 회원 관리</button>
   <button class="tab-btn" onclick="showTab('events',this)">📅 모임 관리</button>
   <button class="tab-btn" onclick="showTab('duplicates',this)">⚠️ 중복 신청</button>
+  <button class="tab-btn" onclick="showTab('notices',this)">📢 공지 템플릿</button>
+  <button class="tab-btn" onclick="showTab('warnings',this)">⚠️ 경고 관리</button>
 </div>
 
 <div class="content">
@@ -103,6 +178,7 @@ select.form-input{cursor:pointer}
   <div id="tab-dashboard" class="tab-content active">
     <div class="cards">
       <div class="card"><div class="card-label">전체 회원</div><div class="card-value" id="s-members">-</div><div class="card-sub">활성 회원 기준</div></div>
+      <div class="card"><div class="card-label">가입 대기</div><div class="card-value warn" id="s-pending">-</div><div class="card-sub">승인 필요</div></div>
       <div class="card"><div class="card-label">모집중 모임</div><div class="card-value" id="s-recruit">-</div><div class="card-sub">현재 신청 가능</div></div>
       <div class="card"><div class="card-label">전체 신청</div><div class="card-value" id="s-regs">-</div><div class="card-sub">누적 신청 건수</div></div>
       <div class="card"><div class="card-label">제재 회원</div><div class="card-value" id="s-sanc" style="color:#ff6b6b">-</div><div class="card-sub">현재 제재 인원</div></div>
@@ -118,18 +194,80 @@ select.form-input{cursor:pointer}
     </div>
   </div>
 
+  <!-- 가입신청 -->
+  <div id="tab-applications" class="tab-content">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">📨 가입신청 목록</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="btn-bulk-approve" class="btn btn-success btn-sm" style="display:none" onclick="bulkApprove()">✅ 선택 일괄 승인</button>
+          <button class="btn btn-secondary" onclick="loadApplications()">🔄 새로고침</button>
+        </div>
+      </div>
+      <div class="filter-bar" id="app-status-filters">
+        <button class="filter-btn active" onclick="filterApps('전체',this)">전체</button>
+        <button class="filter-btn" onclick="filterApps('대기중',this)">⏳ 대기중</button>
+        <button class="filter-btn" onclick="filterApps('승인',this)">✅ 승인</button>
+        <button class="filter-btn" onclick="filterApps('거절',this)">❌ 거절</button>
+      </div>
+      <div class="filter-bar" style="align-items:center">
+        <button class="filter-btn" id="chip-mine" onclick="toggleMineFilter(this)">👤 내 담당</button>
+        <button class="filter-btn" id="chip-absent" onclick="toggleAbsentFilter(this)">📞 부재중</button>
+        <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="autoAssign()">⚖️ 미배정 자동 분배</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:32px"><input type="checkbox" id="apps-check-all" onchange="toggleAllAppsCheck(this)" style="display:none"></th>
+            <th>신청일시</th><th>이름</th><th>나이</th><th>성별</th><th>연락처</th><th>거주지</th><th>상태</th><th>담당자</th><th>신원확인</th><th>처리</th>
+          </tr></thead>
+          <tbody id="apps-table"><tr><td colspan="11" class="loading">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 리더신청 -->
+  <div id="tab-leaders" class="tab-content">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">🙋 리더신청 목록</div>
+        <button class="btn btn-secondary" onclick="loadLeaderApps()">🔄 새로고침</button>
+      </div>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterLeaders('전체',this)">전체</button>
+        <button class="filter-btn" onclick="filterLeaders('대기중',this)">⏳ 대기중</button>
+        <button class="filter-btn" onclick="filterLeaders('승인',this)">✅ 승인</button>
+        <button class="filter-btn" onclick="filterLeaders('거절',this)">❌ 거절</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>신청일시</th><th>이름</th><th>연락처</th><th>모임명</th><th>분야</th><th>예상날짜</th><th>예상인원</th><th>상태</th><th>처리</th></tr></thead>
+          <tbody id="leaders-table"><tr><td colspan="9" class="loading">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- 회원 관리 -->
   <div id="tab-members" class="tab-content">
     <div class="section">
       <div class="section-header">
         <div class="section-title">👥 회원 목록</div>
-        <button class="btn btn-primary" onclick="openModal('addMember')">+ 회원 등록</button>
+        <button class="btn btn-primary" onclick="openModal('addMember')">+ 직접 등록</button>
       </div>
-      <input type="text" class="search-bar" placeholder="이름, 거주지, 취미로 검색..." oninput="filterMembers(this.value)">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+        <input type="text" class="search-bar" style="flex:1;min-width:180px;margin-bottom:0" placeholder="이름, 거주지, 관심분야로 검색..." oninput="applyMemberFilters()">
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-secondary btn-sm m-flag-btn active" onclick="setMemberFlagFilter('전체',this)">전체</button>
+          <button class="btn btn-secondary btn-sm m-flag-btn" onclick="setMemberFlagFilter('지인',this)" style="color:#e67700">⭐ 지인</button>
+          <button class="btn btn-secondary btn-sm m-flag-btn" onclick="setMemberFlagFilter('미지인',this)">미지인</button>
+        </div>
+      </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>이름</th><th>나이</th><th>전화번호</th><th>거주지</th><th>취미</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead>
-          <tbody id="members-table"><tr><td colspan="8" class="loading">불러오는 중...</td></tr></tbody>
+          <thead><tr><th>이름</th><th>나이</th><th>성별</th><th>거주지</th><th>연락처</th><th>상태</th><th>관리</th></tr></thead>
+          <tbody id="members-table"><tr><td colspan="7" class="loading">불러오는 중...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -140,14 +278,18 @@ select.form-input{cursor:pointer}
     <div class="section">
       <div class="section-header">
         <div class="section-title">📅 모임 목록</div>
-        <button class="btn btn-primary" onclick="openModal('addEvent')">+ 모임 등록</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="copyBoardLink()">🌐 공개 보드 링크</button>
+          <button class="btn btn-primary" onclick="openModal('addEvent')">+ 모임 등록</button>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>모임명</th><th>날짜</th><th>장소</th><th>최대인원</th><th>리더</th><th>신청자</th><th>상태</th><th>변경</th></tr></thead>
-          <tbody id="events-table"><tr><td colspan="8" class="loading">불러오는 중...</td></tr></tbody>
-        </table>
+      <div class="filter-bar" id="event-status-filters">
+        <button class="filter-btn active" onclick="setEventFilter('전체',this)">전체</button>
+        <button class="filter-btn" onclick="setEventFilter('모집중',this)">🟢 모집중</button>
+        <button class="filter-btn" onclick="setEventFilter('진행중',this)">🟡 진행중</button>
+        <button class="filter-btn" onclick="setEventFilter('완료',this)">⚫ 완료</button>
       </div>
+      <div id="events-list"><div class="loading">불러오는 중...</div></div>
     </div>
     <div class="section">
       <div class="section-header">
@@ -175,20 +317,239 @@ select.form-input{cursor:pointer}
     </div>
   </div>
 
+  <!-- 공지 템플릿 -->
+  <div id="tab-notices" class="tab-content">
+    <div class="section">
+
+      <!-- 1:1 문의/신고 공지 -->
+      <div class="notice-card">
+        <div class="notice-card-title">📣 1:1 문의 · 신고 공지</div>
+        <p class="notice-card-desc">오픈채팅봇으로 공지방에 매일 자동 발송되는 문구예요. 1:1 오픈채팅 링크를 입력하면 바로 완성됩니다.</p>
+        <div class="form-group">
+          <label class="form-label">1:1 오픈채팅 링크</label>
+          <input class="form-input" id="notice-inquiry-url" placeholder="https://open.kakao.com/..." oninput="updateInquiryNotice()">
+        </div>
+        <textarea id="notice-inquiry-text" class="form-input" style="height:180px;resize:none;font-size:12px;line-height:1.8;font-family:inherit" readonly></textarea>
+        <div style="text-align:right;margin-top:8px">
+          <button class="btn btn-primary btn-sm" onclick="copyNotice('notice-inquiry-text')">📋 복사</button>
+        </div>
+      </div>
+
+      <!-- 활동사진 공지 -->
+      <div class="notice-card">
+        <div class="notice-card-title">📸 활동사진 공유 요청</div>
+        <p class="notice-card-desc">모임이 시작되는 시간에 채팅방에 올리는 문구예요.</p>
+        <textarea id="notice-photo-text" class="form-input" style="height:160px;resize:none;font-size:12px;line-height:1.8;font-family:inherit" readonly></textarea>
+        <div style="text-align:right;margin-top:8px">
+          <button class="btn btn-primary btn-sm" onclick="copyNotice('notice-photo-text')">📋 복사</button>
+        </div>
+      </div>
+
+      <!-- 환영인사 -->
+      <div class="notice-card">
+        <div class="notice-card-title">👋 신규 입장 환영인사</div>
+        <p class="notice-card-desc">새 회원이 채팅방에 처음 입장했을 때 올리는 환영 문구예요. 이름을 입력하면 자동으로 완성됩니다.</p>
+        <div class="form-group">
+          <label class="form-label">회원 이름</label>
+          <input class="form-input" id="notice-welcome-name" placeholder="홍길동" oninput="updateWelcomeNotice()">
+        </div>
+        <textarea id="notice-welcome-text" class="form-input" style="height:170px;resize:none;font-size:12px;line-height:1.8;font-family:inherit" readonly></textarea>
+        <div style="text-align:right;margin-top:8px">
+          <button class="btn btn-primary btn-sm" onclick="copyNotice('notice-welcome-text')">📋 복사</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 경고 관리 -->
+  <div id="tab-warnings" class="tab-content">
+    <div class="section">
+      <div id="warning-summary" class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px"></div>
+      <div class="section-header">
+        <div class="section-title">경고 & 주의 이력</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-secondary btn-sm warn-filter-btn active" onclick="setWarnFilter('전체',this)">전체</button>
+          <button class="btn btn-secondary btn-sm warn-filter-btn" onclick="setWarnFilter('유효',this)">유효 중</button>
+          <button class="btn btn-secondary btn-sm warn-filter-btn" onclick="setWarnFilter('소멸',this)">소멸</button>
+          <button class="btn btn-primary btn-sm" onclick="openWarningModal()">+ 경고/주의 부여</button>
+        </div>
+      </div>
+      <div id="warning-list"><div class="loading">불러오는 중...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 경고/주의 부여 모달 -->
+<div id="modal-warning" class="modal-overlay">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">⚠️ 경고 / 주의 부여</div>
+
+    <div class="form-group">
+      <label class="form-label">회원 선택</label>
+      <select class="form-input" id="w-member" onchange="updateWarnTemplate()">
+        <option value="">회원을 선택하세요</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">유형</label>
+      <div class="atab-bar" style="max-width:180px">
+        <button class="atab active" id="w-tab-caution" onclick="selectWarnType('주의',this)">주의</button>
+        <button class="atab" id="w-tab-warning" onclick="selectWarnType('경고',this)">경고</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">사유</label>
+      <select class="form-input" id="w-reason" onchange="updateWarnTemplate()"></select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>발송할 1:1 메시지</span>
+        <button class="btn btn-secondary btn-sm" style="padding:2px 10px;font-size:11px" onclick="copyWarnMsg()">📋 복사</button>
+      </label>
+      <textarea id="w-template" class="form-input" style="height:210px;resize:none;font-size:12px;line-height:1.75;font-family:inherit" readonly></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">비고 (선택)</label>
+      <input class="form-input" id="w-note" placeholder="추가 메모">
+    </div>
+
+    <div class="form-group" style="background:#fff8f0;border:1px solid #ffd8a8;border-radius:8px;padding:12px 14px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="w-sent" style="width:18px;height:18px;flex-shrink:0">
+        <span style="font-size:13px;line-height:1.5">위 메시지를 해당 회원에게 <strong>1:1로 발송 완료</strong>했습니다<br><span style="font-size:11px;color:#e67700">반드시 발송 후 체크해주세요. 미체크 시 저장되지 않습니다.</span></span>
+      </label>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('warning')">취소</button>
+      <button class="btn btn-primary" onclick="saveWarning()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 신청 상세 모달 -->
+<div id="modal-appDetail" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">📨 가입신청 상세</div>
+    <div id="app-detail-content"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('appDetail')">닫기</button>
+      <button id="btn-reject" class="btn btn-danger" onclick="doReject()">거절</button>
+      <button id="btn-approve" class="btn btn-success" onclick="doApprove()">승인 → 회원등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- 공지문 생성 모달 -->
+<div id="modal-announce" class="modal-overlay">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">모임 공지 및 리마인드</div>
+    <div class="atab-bar">
+      <button class="atab active" onclick="switchATab('post',this)">📣 공지문</button>
+      <button class="atab" onclick="switchATab('remind',this)">📅 리마인드</button>
+    </div>
+
+    <!-- 공지문 탭 -->
+    <div id="atab-post">
+      <div class="form-group">
+        <label class="form-label" style="display:flex;justify-content:space-between">
+          <span>공지문 미리보기</span>
+          <span id="announce-link-status" style="color:#aaa;font-weight:400;font-size:12px"></span>
+        </label>
+        <textarea id="announce-text" class="form-input" style="height:320px;resize:none;font-size:12px;line-height:1.7;font-family:inherit" readonly></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('announce')">닫기</button>
+        <button class="btn btn-primary" onclick="copyAnnouncement()">📋 공지문 복사</button>
+      </div>
+    </div>
+
+    <!-- 리마인드 탭 -->
+    <div id="atab-remind" style="display:none">
+      <div id="remind-content"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('announce')">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 리더 상세 모달 -->
+<div id="modal-leaderDetail" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">🙋 리더신청 상세</div>
+    <div id="leader-detail-content"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('leaderDetail')">닫기</button>
+      <button id="btn-leader-reject" class="btn btn-danger" onclick="doLeaderReject()">거절</button>
+      <button id="btn-leader-approve" class="btn btn-success" onclick="doLeaderApprove()">승인 → 모임등록</button>
+    </div>
+  </div>
 </div>
 
 <!-- 회원 등록 모달 -->
 <div id="modal-addMember" class="modal-overlay">
   <div class="modal">
-    <div class="modal-title">👤 회원 등록</div>
-    <div class="form-group"><label class="form-label">이름 *</label><input class="form-input" id="m-name" placeholder="홍길동"></div>
-    <div class="form-group"><label class="form-label">나이 *</label><input class="form-input" id="m-age" type="number" placeholder="25"></div>
-    <div class="form-group"><label class="form-label">전화번호 *</label><input class="form-input" id="m-phone" placeholder="010-0000-0000"></div>
-    <div class="form-group"><label class="form-label">거주지 *</label><input class="form-input" id="m-loc" placeholder="고잔동"></div>
-    <div class="form-group"><label class="form-label">취미/관심사</label><input class="form-input" id="m-hobby" placeholder="맛집탐방, 운동"></div>
+    <div class="modal-title">👤 회원 직접 등록</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">이름 *</label><input class="form-input" id="m-name" placeholder="홍길동"></div>
+      <div class="form-group"><label class="form-label">나이 *</label><input class="form-input" id="m-age" type="number" placeholder="25"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">성별</label>
+        <select class="form-input" id="m-gender"><option value="">선택</option><option>남</option><option>여</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">연락처 *</label><input class="form-input" id="m-phone" placeholder="010-0000-0000"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">거주지 *</label><input class="form-input" id="m-loc" placeholder="고잔동"></div>
+      <div class="form-group"><label class="form-label">관심분야</label><input class="form-input" id="m-hobby" placeholder="맛집탐방, 운동"></div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('addMember')">취소</button>
       <button class="btn btn-primary" onclick="submitMember()">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- 회원 수정 모달 -->
+<div id="modal-editMember" class="modal-overlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">✏️ 회원 정보 수정</div>
+    <input type="hidden" id="em-rowId">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">이름 *</label><input class="form-input" id="em-name"></div>
+      <div class="form-group"><label class="form-label">나이</label><input class="form-input" id="em-age" type="number"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">성별</label>
+        <select class="form-input" id="em-gender"><option value="">선택</option><option>남</option><option>여</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">연락처</label><input class="form-input" id="em-phone"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">거주지</label><input class="form-input" id="em-loc"></div>
+      <div class="form-group"><label class="form-label">관심분야</label><input class="form-input" id="em-hobby"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">가입일</label><input class="form-input" id="em-joinDate" type="date"></div>
+      <div class="form-group"><label class="form-label">상태</label>
+        <select class="form-input" id="em-status">
+          <option value="활성">활성</option>
+          <option value="비활성">비활성</option>
+          <option value="제재">제재</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editMember')">취소</button>
+      <button class="btn btn-primary" onclick="saveMemberEdit()">저장</button>
     </div>
   </div>
 </div>
@@ -198,9 +559,11 @@ select.form-input{cursor:pointer}
   <div class="modal">
     <div class="modal-title">📅 모임 등록</div>
     <div class="form-group"><label class="form-label">모임명 *</label><input class="form-input" id="e-name" placeholder="7월 맛집 탐방 벙"></div>
-    <div class="form-group"><label class="form-label">날짜 *</label><input class="form-input" id="e-date" type="date"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">날짜 *</label><input class="form-input" id="e-date" type="date"></div>
+      <div class="form-group"><label class="form-label">최대 인원</label><input class="form-input" id="e-max" type="number" placeholder="10"></div>
+    </div>
     <div class="form-group"><label class="form-label">장소 *</label><input class="form-input" id="e-loc" placeholder="안산 중앙역 근처"></div>
-    <div class="form-group"><label class="form-label">최대 인원</label><input class="form-input" id="e-max" type="number" placeholder="10"></div>
     <div class="form-group"><label class="form-label">리더</label><input class="form-input" id="e-leader" placeholder="홍길동"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('addEvent')">취소</button>
@@ -226,10 +589,28 @@ select.form-input{cursor:pointer}
   </div>
 </div>
 
+<!-- 신청자 배치 모달 -->
+<div id="modal-applicants" class="modal-overlay">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-title" id="applicants-title">👥 신청자 목록</div>
+    <div id="applicants-content"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('applicants')">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
-let M=[], E=[], R=[];
+let M=[], E=[], R=[], A=[], LA=[], PA=[], WN=[];
+let warnFilter='전체', warnType='주의';
+let memberFlagFilter='전체', memberSearchQ='';
+let currentAppId = null, currentLeaderId = null;
+let appFilter = '전체', leaderFilter = '전체';
+let webAppUrl = '';
+let OPS = [], myEmail = '', myOpName = '';
+let appMineOnly = false, appAbsentOnly = false;
 
 function showTab(id, btn) {
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
@@ -237,22 +618,33 @@ function showTab(id, btn) {
   document.getElementById('tab-'+id).classList.add('active');
   btn.classList.add('active');
   if(id==='dashboard') loadDashboard();
+  if(id==='applications') loadApplications();
+  if(id==='leaders') loadLeaderApps();
   if(id==='members') loadMembers();
   if(id==='events') loadEventsTab();
   if(id==='duplicates') loadDuplicates();
+  if(id==='notices') initNoticesTab();
+  if(id==='warnings') loadWarnings();
 }
 
 function loadAll(cb) {
   let n=0;
-  const done=()=>{ if(++n===3 && cb) cb(); };
+  const done=()=>{ if(++n===4 && cb) cb(); };
   google.script.run.withSuccessHandler(d=>{M=d;done();}).getMembers();
   google.script.run.withSuccessHandler(d=>{E=d;done();}).getEvents();
   google.script.run.withSuccessHandler(d=>{R=d;done();}).getRegistrations();
+  google.script.run.withSuccessHandler(d=>{A=d;done();}).getApplications();
+}
+
+function initWebAppUrl() {
+  if(webAppUrl) return;
+  google.script.run.withSuccessHandler(u=>{webAppUrl=u;}).getWebAppUrl();
 }
 
 function loadDashboard() {
   loadAll(()=>{
     document.getElementById('s-members').textContent = M.filter(m=>m.status==='활성').length;
+    document.getElementById('s-pending').textContent = A.filter(a=>a.status==='대기중').length;
     document.getElementById('s-recruit').textContent = E.filter(e=>e.status==='모집중').length;
     document.getElementById('s-regs').textContent = R.length;
     document.getElementById('s-sanc').textContent = M.filter(m=>m.status==='제재').length;
@@ -261,56 +653,784 @@ function loadDashboard() {
     if(!E.length){ tbody.innerHTML='<tr><td colspan="5" class="empty">등록된 모임이 없습니다</td></tr>'; return; }
     tbody.innerHTML = E.slice(0,6).map(e=>{
       const cnt = R.filter(r=>r.eventName===e.name).length;
-      return `<tr><td><b>${e.name}</b></td><td>${e.date}</td><td>${e.location}</td><td>${cnt}명 / ${e.maxMembers||'∞'}명</td><td>${bE(e.status)}</td></tr>`;
+      return `<tr><td><b>${e.name}</b></td><td>${fmtKorDate(e.date)}</td><td>${e.location}</td><td>${cnt}명 / ${e.maxMembers||'∞'}명</td><td>${bE(e.status)}</td></tr>`;
     }).join('');
   });
 }
 
+// ===== 가입신청 =====
+function loadApplications() {
+  document.getElementById('apps-table').innerHTML='<tr><td colspan="11" class="loading">불러오는 중...</td></tr>';
+  google.script.run.withSuccessHandler(d=>{A=d; renderApps(d);}).getApplications();
+}
+
+function filterApps(f, btn) {
+  appFilter = f;
+  document.querySelectorAll('#app-status-filters .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderApps(A);
+}
+
+const V_COLORS = {
+  '미확인':'background:#f8f8fc;color:#888',
+  '부재중':'background:#fff3bf;color:#e67700;font-weight:600',
+  '확인완료':'background:#d3f9d8;color:#2f9e44;font-weight:600'
+};
+
+function renderApps(list) {
+  const tb = document.getElementById('apps-table');
+  let filtered = appFilter==='전체' ? list : list.filter(a=>a.status===appFilter);
+  if(appMineOnly && myOpName) filtered = filtered.filter(a=>a.assignee===myOpName);
+  if(appAbsentOnly) filtered = filtered.filter(a=>a.verify==='부재중');
+  // 부재중 칩에 대기중 건수 표시
+  const absentCnt = list.filter(a=>a.verify==='부재중' && a.status==='대기중').length;
+  const chipAbsent = document.getElementById('chip-absent');
+  if(chipAbsent) chipAbsent.textContent = absentCnt ? `📞 부재중 (${absentCnt})` : '📞 부재중';
+  const hasPending = filtered.some(a=>a.status==='대기중');
+  const allChk = document.getElementById('apps-check-all');
+  if(allChk) allChk.style.display = hasPending ? '' : 'none';
+  if(!filtered.length){ tb.innerHTML='<tr><td colspan="11" class="empty">신청 내역이 없습니다</td></tr>'; updateBulkBtn(); return; }
+  const opNames = OPS.map(o=>o.name);
+  tb.innerHTML = filtered.map(a=>{
+    const extraOp = a.assignee && !opNames.includes(a.assignee) ? `<option selected>${a.assignee}</option>` : '';
+    return `
+    <tr>
+      <td style="text-align:center">${a.status==='대기중'
+        ? `<input type="checkbox" class="app-chk" data-id="${a.id}" onchange="updateBulkBtn()">`
+        : ''}</td>
+      <td>${fmtDate(a.timestamp)}</td>
+      <td><b>${a.name}</b></td>
+      <td>${a.age}</td>
+      <td>${a.gender}</td>
+      <td>${a.phone}</td>
+      <td>${a.location}</td>
+      <td>${bApp(a.status)}</td>
+      <td><select class="form-input" style="padding:3px 6px;font-size:12px;width:80px;border-radius:6px" onchange="setAssignee(${a.id},this.value)">
+        <option value="">-</option>${extraOp}
+        ${OPS.map(o=>`<option ${a.assignee===o.name?'selected':''}>${o.name}</option>`).join('')}
+      </select></td>
+      <td><select class="form-input" style="padding:3px 6px;font-size:12px;width:88px;border-radius:6px;${V_COLORS[a.verify]||V_COLORS['미확인']}" onchange="setVerify(${a.id},this.value)">
+        <option ${a.verify==='미확인'?'selected':''}>미확인</option>
+        <option ${a.verify==='부재중'?'selected':''}>부재중</option>
+        <option ${a.verify==='확인완료'?'selected':''}>확인완료</option>
+      </select></td>
+      <td>
+        ${a.status==='대기중'
+          ? `<button class="btn btn-sm btn-primary" onclick="openAppDetail(${a.id})">상세/처리</button>`
+          : `<button class="btn btn-sm btn-secondary" onclick="openAppDetail(${a.id})">상세</button>`
+        }
+      </td>
+    </tr>`;
+  }).join('');
+  updateBulkBtn();
+}
+
+function setAssignee(id, name) {
+  const a = A.find(x=>x.id===id); if(a) a.assignee = name;
+  google.script.run
+    .withSuccessHandler(()=>toast(name ? `담당자: ${name} ✅` : '담당 해제됨'))
+    .withFailureHandler(()=>toast('저장 실패. 다시 시도해주세요'))
+    .setAppAssignee(id, name);
+}
+
+function setVerify(id, status) {
+  const a = A.find(x=>x.id===id); if(a) a.verify = status;
+  google.script.run
+    .withFailureHandler(()=>toast('저장 실패. 다시 시도해주세요'))
+    .setAppVerifyStatus(id, status);
+  renderApps(A);
+  toast(status==='부재중' ? '📞 부재중 — 재컨택 목록에 추가됐어요' : '신원확인: '+status);
+}
+
+function toggleMineFilter(btn) {
+  if(!myOpName){ toast('운영자 목록(OPERATORS)에 내 계정이 등록돼 있지 않아요'); return; }
+  appMineOnly = !appMineOnly;
+  btn.classList.toggle('active', appMineOnly);
+  renderApps(A);
+}
+
+function toggleAbsentFilter(btn) {
+  appAbsentOnly = !appAbsentOnly;
+  btn.classList.toggle('active', appAbsentOnly);
+  renderApps(A);
+}
+
+function autoAssign() {
+  if(!confirm('미배정 상태인 대기중 신청을 운영자들에게 자동 분배할까요?')) return;
+  toast('분배 중...');
+  google.script.run.withSuccessHandler(r=>{
+    if(r.success){ toast(`⚖️ ${r.count}건 분배 완료`); loadApplications(); }
+    else toast('운영자 목록이 비어있어요');
+  }).withFailureHandler(()=>toast('오류 발생')).autoAssignApps();
+}
+
+function toggleAllAppsCheck(master) {
+  document.querySelectorAll('.app-chk').forEach(c=>c.checked=master.checked);
+  updateBulkBtn();
+}
+
+function updateBulkBtn() {
+  const checked = document.querySelectorAll('.app-chk:checked').length;
+  const btn = document.getElementById('btn-bulk-approve');
+  if(btn) { btn.style.display = checked>0 ? '' : 'none'; btn.textContent = `✅ ${checked}명 일괄 승인`; }
+}
+
+function bulkApprove() {
+  const ids = Array.from(document.querySelectorAll('.app-chk:checked')).map(c=>+c.dataset.id);
+  if(!ids.length) return;
+  if(!confirm(`선택한 ${ids.length}명을 일괄 승인할까요?`)) return;
+  google.script.run.withSuccessHandler(r=>{
+    toast(`✅ ${r.count}명 승인 완료`);
+    loadApplications();
+  }).withFailureHandler(()=>toast('오류 발생')).bulkApproveApplications(ids);
+}
+
+function openAppDetail(id) {
+  const a = A.find(x=>x.id===id);
+  if(!a) return;
+  currentAppId = id;
+  document.getElementById('app-detail-content').innerHTML = `
+    <div class="detail-box">
+      <div class="detail-row"><span class="detail-label">신청일시</span><span class="detail-value">${a.timestamp}</span></div>
+      <div class="detail-row"><span class="detail-label">이름</span><span class="detail-value">${a.name}</span></div>
+      <div class="detail-row"><span class="detail-label">나이</span><span class="detail-value">${a.age}</span></div>
+      <div class="detail-row"><span class="detail-label">성별</span><span class="detail-value">${a.gender}</span></div>
+      <div class="detail-row"><span class="detail-label">연락처</span><span class="detail-value">${a.phone}</span></div>
+      <div class="detail-row"><span class="detail-label">거주지역</span><span class="detail-value">${a.location}</span></div>
+      <div class="detail-row"><span class="detail-label">관심분야</span><span class="detail-value">${a.hobby}</span></div>
+      <div class="detail-row"><span class="detail-label">가입동기</span><span class="detail-value">${a.motivation}</span></div>
+      <div class="detail-row"><span class="detail-label">처리상태</span><span class="detail-value">${bApp(a.status)}</span></div>
+      <div class="detail-row"><span class="detail-label">담당자</span><span class="detail-value">${a.assignee||'-'}</span></div>
+      <div class="detail-row"><span class="detail-label">신원확인</span><span class="detail-value">${a.verify||'미확인'}</span></div>
+    </div>`;
+  const isPending = a.status==='대기중';
+  document.getElementById('btn-approve').style.display = isPending?'':'none';
+  document.getElementById('btn-reject').style.display = isPending?'':'none';
+  openModal('appDetail');
+}
+
+function doApprove() {
+  if(!confirm('이 신청자를 승인하고 회원으로 등록할까요?')) return;
+  google.script.run.withSuccessHandler(r=>{
+    if(r.success){ closeModal('appDetail'); loadApplications(); toast('승인 완료 — 회원목록에 추가됐어요 ✅'); }
+    else toast('오류: '+r.message);
+  }).approveApplication(currentAppId);
+}
+
+function doReject() {
+  if(!confirm('이 신청자를 거절할까요?')) return;
+  google.script.run.withSuccessHandler(()=>{
+    closeModal('appDetail'); loadApplications(); toast('거절 처리됐어요');
+  }).rejectApplication(currentAppId);
+}
+
+// ===== 리더신청 =====
+function loadLeaderApps() {
+  document.getElementById('leaders-table').innerHTML='<tr><td colspan="9" class="loading">불러오는 중...</td></tr>';
+  google.script.run.withSuccessHandler(d=>{LA=d; renderLeaders(d);}).getLeaderApps();
+}
+
+function filterLeaders(f, btn) {
+  leaderFilter = f;
+  btn.closest('.filter-bar').querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLeaders(LA);
+}
+
+function renderLeaders(list) {
+  const tb = document.getElementById('leaders-table');
+  const filtered = leaderFilter==='전체' ? list : list.filter(a=>a.status===leaderFilter);
+  if(!filtered.length){ tb.innerHTML='<tr><td colspan="9" class="empty">신청 내역이 없습니다</td></tr>'; return; }
+  tb.innerHTML = filtered.map(a=>`
+    <tr>
+      <td>${fmtDate(a.timestamp)}</td>
+      <td><b>${a.name}</b></td>
+      <td>${a.phone}</td>
+      <td>${a.eventName}</td>
+      <td>${a.category}</td>
+      <td>${fmtKorDate(a.date1)}</td>
+      <td>${a.maxSize}</td>
+      <td>${bApp(a.status)}</td>
+      <td>
+        ${a.status==='대기중'
+          ? `<button class="btn btn-sm btn-primary" onclick="openLeaderDetail(${a.id})">상세/처리</button>`
+          : `<button class="btn btn-sm btn-secondary" onclick="openLeaderDetail(${a.id})">상세</button>`
+        }
+      </td>
+    </tr>`).join('');
+}
+
+function openLeaderDetail(id) {
+  const a = LA.find(x=>x.id===id);
+  if(!a) return;
+  currentLeaderId = id;
+  const d2row = a.date2 ? `<div class="detail-row"><span class="detail-label">2회차</span><span class="detail-value">${fmtKorDate(a.date2)}</span></div>` : '';
+  const d3row = a.date3 ? `<div class="detail-row"><span class="detail-label">3회차</span><span class="detail-value">${fmtKorDate(a.date3)}</span></div>` : '';
+  document.getElementById('leader-detail-content').innerHTML = `
+    <div class="detail-box">
+      <div class="detail-row"><span class="detail-label">신청일시</span><span class="detail-value">${fmtDate(a.timestamp)}</span></div>
+      <div class="detail-row"><span class="detail-label">이름</span><span class="detail-value">${a.name}</span></div>
+      <div class="detail-row"><span class="detail-label">연락처</span><span class="detail-value">${a.phone || '-'}</span></div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-row"><span class="detail-label">모임명</span><span class="detail-value">${a.eventName}</span></div>
+      <div class="detail-row"><span class="detail-label">분야</span><span class="detail-value">${a.category}</span></div>
+      <div class="detail-row"><span class="detail-label">1회차</span><span class="detail-value">${fmtKorDate(a.date1)}</span></div>
+      ${d2row}${d3row}
+      <div class="detail-row"><span class="detail-label">장소</span><span class="detail-value">${a.place}</span></div>
+      <div class="detail-row"><span class="detail-label">최대 인원</span><span class="detail-value">${a.maxSize}</span></div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-row"><span class="detail-label">모임 소개</span><span class="detail-value">${a.description}</span></div>
+      <div class="detail-row"><span class="detail-label">준비물</span><span class="detail-value">${a.supplies || '-'}</span></div>
+      <div class="detail-row"><span class="detail-label">처리상태</span><span class="detail-value">${bApp(a.status)}</span></div>
+    </div>`;
+  const isPending = a.status==='대기중';
+  document.getElementById('btn-leader-reject').style.display = isPending?'':'none';
+  document.getElementById('btn-leader-approve').style.display = isPending?'':'none';
+  openModal('leaderDetail');
+}
+
+function doLeaderApprove() {
+  if(!confirm('이 신청을 승인하고 모임목록에 등록할까요?')) return;
+  google.script.run.withSuccessHandler(r=>{
+    if(r.success){
+      closeModal('leaderDetail');
+      loadLeaderApps();
+      toast('승인 완료 — 모임목록에 추가됐어요 ✅');
+      const app = LA.find(x=>x.id===currentLeaderId);
+      if(app){ openAnnounceModal(app); }
+    } else toast('오류: '+r.message);
+  }).approveLeaderApp(currentLeaderId);
+}
+
+function openAnnounceModal(app) {
+  document.getElementById('announce-text').value = buildAnnouncement(app, '(링크 단축 중...)');
+  document.getElementById('announce-link-status').textContent = '🔗 링크 단축 중...';
+  document.getElementById('modal-announce').dataset.app = JSON.stringify(app);
+  openModal('announce');
+  if(!webAppUrl) { initWebAppUrl(); }
+  const applyUrl = (webAppUrl||'') + '?apply=' + encodeURIComponent(app.eventName||'');
+  google.script.run
+    .withSuccessHandler(short => {
+      const a = JSON.parse(document.getElementById('modal-announce').dataset.app||'{}');
+      document.getElementById('announce-text').value = buildAnnouncement(a, short);
+      document.getElementById('announce-link-status').textContent = '✅ 단축 링크 삽입됨';
+    })
+    .withFailureHandler(() => {
+      const a = JSON.parse(document.getElementById('modal-announce').dataset.app||'{}');
+      document.getElementById('announce-text').value = buildAnnouncement(a, applyUrl);
+      document.getElementById('announce-link-status').textContent = '';
+    })
+    .getShortUrl(applyUrl);
+}
+
+function openEventAnnounce(eventId) {
+  const e = E.find(x=>x.id===eventId);
+  if(!e) return;
+  openAnnounceModal({
+    eventName: e.name,
+    category: '',
+    date1: e.date,
+    date2: '',
+    date3: '',
+    place: e.location,
+    maxSize: String(e.maxMembers||'-'),
+    name: e.leader||'-',
+    description: '',
+    supplies: ''
+  });
+}
+
+function buildAnnouncement(app, applyLink) {
+  const dates = [app.date1, app.date2, app.date3].filter(d => d && d.trim());
+  let dateBlock;
+  if(dates.length === 1){
+    dateBlock = `📅 일정: ${fmtKorDate(dates[0])}`;
+  } else {
+    dateBlock = dates.map((d,i)=>`📅 ${i+1}회차: ${fmtKorDate(d)}`).join('\n');
+  }
+  const suppliesLine = (app.supplies && app.supplies.trim() && app.supplies !== '-')
+    ? `\n🎒 준비물: ${app.supplies}` : '';
+  const categoryLine = (app.category && app.category !== '-') ? `\n📂 분야: ${app.category}` : '';
+  const descSection = app.description ? `━━━━━━━━━━━━━━\n📝 모임 소개\n${app.description}${suppliesLine}\n` : '';
+  const urlLine = applyLink
+    ? `🔗 신청 링크: ${applyLink}`
+    : `🔗 신청 링크: (생성 중...)`;
+  return `📣 [모임 공지]
+
+✨ ${app.eventName}${categoryLine}
+━━━━━━━━━━━━━━
+${dateBlock}
+
+📍 장소: ${app.place}
+👥 최대 인원: ${app.maxSize}
+👤 리더: ${app.name}
+━━━━━━━━━━━━━━
+${descSection}${urlLine}`;
+}
+
+function copyAnnouncement() {
+  const text = document.getElementById('announce-text').value;
+  if(!text) return;
+  if(text.includes('링크 단축 중')) { toast('잠시 후 다시 시도해주세요'); return; }
+  navigator.clipboard.writeText(text).then(()=>toast('공지문이 복사됐어요 📋'));
+}
+
+function switchATab(tab, btn) {
+  document.getElementById('atab-post').style.display = tab==='post' ? '' : 'none';
+  document.getElementById('atab-remind').style.display = tab==='remind' ? '' : 'none';
+  document.querySelectorAll('.atab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(tab==='remind'){
+    const raw = document.getElementById('modal-announce').dataset.app;
+    if(raw) document.getElementById('remind-content').innerHTML = buildRemindContent(JSON.parse(raw));
+  }
+}
+
+function extractTime(dateStr) {
+  const formatted = fmtKorDate(dateStr);
+  const m = formatted.match(/(\d{2}:\d{2})$/);
+  return m ? m[1] : formatted;
+}
+
+function buildRemindMessages(app) {
+  const dates = [app.date1, app.date2, app.date3].filter(d => d && String(d).trim());
+  const multi = dates.length > 1;
+  const sup = (app.supplies && app.supplies.trim() && app.supplies !== '-')
+    ? `🎒 준비물: ${app.supplies}\n` : '';
+  return dates.map((dateStr, i) => {
+    const label = multi ? `${i+1}회차 · ${fmtKorDate(dateStr)}` : fmtKorDate(dateStr);
+    const name = multi ? `${app.eventName} (${i+1}회차)` : app.eventName;
+    const time = extractTime(dateStr);
+    const eve = `🌙 [내일 모임 리마인드]
+
+✨ ${name}이(가) 내일이에요!
+
+📅 일시: ${fmtKorDate(dateStr)}
+📍 장소: ${app.place}
+👤 리더: ${app.name}
+${sup}
+오늘 푹 쉬시고 내일 뵐게요 😊
+참석이 어려우시다면 미리 알려주세요!`;
+    const morning = `☀️ [오늘 모임 당일!]
+
+✨ ${name} D-DAY 🎉
+
+📅 오늘 ${time}
+📍 ${app.place}
+👤 리더: ${app.name}
+${sup}
+건강하게 오늘 만나요! 💪
+당일 불참 시 꼭 미리 알려주세요 🙏`;
+    return { label, eve, morning };
+  });
+}
+
+function buildRemindContent(app) {
+  const sessions = buildRemindMessages(app);
+  return sessions.map(s => `
+    <div class="remind-card">
+      <div class="remind-card-title">📆 ${s.label}</div>
+      <div class="remind-msg-label">🌙 전날 공지</div>
+      <textarea class="remind-ta" readonly>${s.eve}</textarea>
+      <div class="remind-copy-row">
+        <button class="btn btn-secondary btn-sm" onclick="copyRemindText(this)">📋 복사</button>
+      </div>
+      <div class="remind-msg-label">☀️ 당일 아침</div>
+      <textarea class="remind-ta" readonly>${s.morning}</textarea>
+      <div class="remind-copy-row">
+        <button class="btn btn-secondary btn-sm" onclick="copyRemindText(this)">📋 복사</button>
+      </div>
+    </div>`).join('');
+}
+
+function copyRemindText(btn) {
+  const ta = btn.closest('.remind-copy-row').previousElementSibling;
+  navigator.clipboard.writeText(ta.value).then(()=>toast('복사됐어요 📋'));
+}
+
+// ===== 신청자 배치 =====
+function copyBoardLink() {
+  if(!webAppUrl){ toast('잠시 후 다시 시도해주세요'); initWebAppUrl(); return; }
+  const url = webAppUrl + '?page=board';
+  toast('링크 단축 중...');
+  google.script.run
+    .withSuccessHandler(short=>{
+      navigator.clipboard.writeText(short).then(()=>toast('공개 보드 링크 복사됨 🌐'));
+    })
+    .withFailureHandler(()=>{
+      navigator.clipboard.writeText(url).then(()=>toast('공개 보드 링크 복사됨 🌐'));
+    })
+    .getShortUrl(url);
+}
+
+function copyApplyLink(eventName) {
+  if(!webAppUrl){ toast('잠시 후 다시 시도해주세요'); return; }
+  const url = webAppUrl + '?apply=' + encodeURIComponent(eventName);
+  toast('링크 단축 중...');
+  google.script.run
+    .withSuccessHandler(short=>{
+      navigator.clipboard.writeText(short).then(()=>toast(short!==url?'단축 링크 복사됨 🔗':'링크 복사됨 🔗'));
+    })
+    .withFailureHandler(()=>{
+      navigator.clipboard.writeText(url).then(()=>toast('링크 복사됨 🔗'));
+    })
+    .getShortUrl(url);
+}
+
+function openApplicants(eventName) {
+  document.getElementById('applicants-title').textContent = '👥 ' + eventName + ' 신청자';
+  document.getElementById('applicants-content').innerHTML = '<div class="loading">불러오는 중...</div>';
+  openModal('applicants');
+  google.script.run.withSuccessHandler(list=>{
+    PA = PA.filter(p=>p.eventName!==eventName).concat(list);
+    renderApplicants(list, eventName);
+  }).getEventApplicants(eventName);
+}
+
+function renderApplicants(list, eventName) {
+  const el = document.getElementById('applicants-content');
+  const pending = list.filter(a=>a.status==='대기중');
+  const done = list.filter(a=>a.status!=='대기중');
+  if(!list.length){
+    el.innerHTML='<div class="empty" style="padding:30px">아직 신청자가 없어요</div>';
+    return;
+  }
+  const normPhone = p => String(p).replace(/\D/g,'');
+  const buildCard = (a, isPending) => {
+    const member = M.find(m => normPhone(m.phone) === normPhone(a.phone));
+    const isMember = !!member;
+    const mBadge = isMember
+      ? `<span style="background:#d3f9d8;color:#2f9e44;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600">✅ 회원</span>`
+      : `<span style="background:#ffe3e3;color:#c92a2a;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600">⚠️ 비회원</span>`;
+    let detail = '';
+    if(isMember) {
+      const led = E.filter(e=>e.leader===member.name);
+      const att = R.filter(r=>r.memberName===member.name);
+      const ledHtml = led.length
+        ? led.map(e=>`<div style="padding:3px 8px;background:#fff;border-radius:5px;border:1px solid #e5e5e5;margin-bottom:3px;font-size:11px">${e.name} · ${fmtKorDate(e.date)}</div>`).join('')
+        : '<span style="color:#bbb;font-size:11px">없음</span>';
+      const attHtml = att.length
+        ? att.slice(-5).map(r=>`<div style="padding:3px 8px;background:#fff;border-radius:5px;border:1px solid #e5e5e5;margin-bottom:3px;font-size:11px">${r.eventName} · ${bA(r.attendance)}</div>`).join('')
+        : '<span style="color:#bbb;font-size:11px">없음</span>';
+      detail = `
+        <div style="margin-top:10px;padding:10px 12px;background:#f8f8fc;border-radius:8px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#5b5bd6;margin-bottom:5px">🏆 리더 이력 (${led.length}건)</div>
+              ${ledHtml}
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#5b5bd6;margin-bottom:5px">📅 참석 이력 (${att.length}건)</div>
+              ${attHtml}
+            </div>
+          </div>
+        </div>`;
+    } else {
+      detail = `<div style="margin-top:8px;padding:8px 10px;background:#fff5f5;border-radius:8px;font-size:11px;color:#c92a2a;border:1px solid #ffa8a8">⚠️ 등록된 회원이 아닙니다. 신중하게 검토하세요.</div>`;
+    }
+    const actions = isPending
+      ? `<div style="display:flex;gap:6px;margin-top:10px">
+          <button class="btn btn-success btn-sm" onclick="setApplicant(${a.id},'승인','${eventName.replace(/'/g,"\\'")}')">승인</button>
+          <button class="btn btn-danger btn-sm" onclick="setApplicant(${a.id},'거절','${eventName.replace(/'/g,"\\'")}')">거절</button>
+         </div>`
+      : `<div style="margin-top:8px">${bApp(a.status)}</div>`;
+    const bg = isPending ? (isMember ? '#fff' : '#fff9f9') : '#f8f8fc';
+    const border = isPending ? (isMember ? '#e0e0e0' : '#ffcccc') : '#eeeeee';
+    return `
+      <div style="padding:12px 14px;background:${bg};border-radius:10px;margin-bottom:10px;border:1px solid ${border}">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-weight:700;font-size:14px">${a.name}</span>
+          <span style="color:#888;font-size:12px">${a.phone}</span>
+          ${mBadge}
+        </div>
+        ${detail}
+        ${actions}
+      </div>`;
+  };
+  let html = '';
+  if(pending.length){
+    html += `<div style="font-size:12px;color:#888;font-weight:600;margin-bottom:10px">⏳ 대기중 (${pending.length}명)</div>`;
+    html += pending.map(a=>buildCard(a,true)).join('');
+  }
+  if(done.length){
+    html += `<div style="font-size:12px;color:#888;font-weight:600;margin:14px 0 10px">✅ 처리 완료 (${done.length}명)</div>`;
+    html += done.map(a=>buildCard(a,false)).join('');
+  }
+  el.innerHTML = html;
+}
+
+function setApplicant(rowId, status, eventName) {
+  google.script.run.withSuccessHandler(()=>{
+    toast(status==='승인'?'승인 처리됐어요 ✅':'거절 처리됐어요');
+    openApplicants(eventName);
+  }).updateApplicantStatus(rowId, status);
+}
+
+function doLeaderReject() {
+  if(!confirm('이 신청을 거절할까요?')) return;
+  google.script.run.withSuccessHandler(()=>{
+    closeModal('leaderDetail'); loadLeaderApps(); toast('거절 처리됐어요');
+  }).rejectLeaderApp(currentLeaderId);
+}
+
+// ===== 회원 =====
 function loadMembers() {
-  google.script.run.withSuccessHandler(d=>{M=d; renderMembers(d);}).getMembers();
+  document.getElementById('members-table').innerHTML='<tr><td colspan="7" class="loading">불러오는 중...</td></tr>';
+  let loaded={m:false,e:false,r:false,w:false};
+  const check=()=>{ if(loaded.m&&loaded.e&&loaded.r&&loaded.w) renderMembers(M); };
+  google.script.run.withSuccessHandler(d=>{M=d;loaded.m=true;check();}).getMembers();
+  google.script.run.withSuccessHandler(d=>{E=d;loaded.e=true;check();}).getEvents();
+  google.script.run.withSuccessHandler(d=>{R=d;loaded.r=true;check();}).getRegistrations();
+  google.script.run.withSuccessHandler(d=>{WN=d;loaded.w=true;check();}).getWarnings();
 }
 
 function renderMembers(list) {
   const tb = document.getElementById('members-table');
-  if(!list.length){ tb.innerHTML='<tr><td colspan="8" class="empty">등록된 회원이 없습니다</td></tr>'; return; }
-  tb.innerHTML = list.map(m=>`
-    <tr>
-      <td><b>${m.name}</b></td><td>${m.age}</td><td>${m.phone}</td>
-      <td>${m.location}</td><td>${m.hobby}</td><td>${m.joinDate}</td>
+  if(!list.length){ tb.innerHTML='<tr><td colspan="7" class="empty">해당하는 회원이 없습니다</td></tr>'; return; }
+  tb.innerHTML = list.map(m=>{
+    const mw=WN.filter(w=>w.memberName===m.name&&!w.expired);
+    const wCnt=mw.filter(w=>w.type==='경고').length, cCnt=mw.filter(w=>w.type==='주의').length;
+    const wBadge=wCnt>=3?'<span class="badge b-sanction" style="font-size:10px;margin-left:4px">경고 3회</span>'
+      :wCnt>0?`<span class="badge b-sanction" style="font-size:10px;margin-left:4px">경고 ${wCnt}회</span>`
+      :cCnt>0?`<span class="badge b-warn" style="font-size:10px;margin-left:4px">주의 ${cCnt}회</span>`:'';
+    const flagBadge=m.flagged?'<span data-flag-badge="1" style="background:#fff3bf;color:#e67700;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;margin-left:4px">⭐ 지인</span>':'';
+    const flagBtn=`<button id="flag-btn-${m.id}" class="btn btn-sm" title="${m.flagged?'지인 해제':'지인 표시'}" onclick="event.stopPropagation();toggleMemberFlagUI(${m.id},this)" style="font-size:13px;padding:2px 6px;border:none;background:transparent;cursor:pointer;color:${m.flagged?'#e67700':'#ccc'}">${m.flagged?'⭐':'☆'}</span>`;
+    return `
+    <tr class="member-row" id="mrow-${m.id}" onclick="toggleMemberDetail(${m.id})">
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="member-avatar">${m.name[0]||'?'}</div>
+          <span style="font-weight:600;font-size:14px">${m.name}</span>${flagBadge}${wBadge}
+          <span class="expand-arrow">▶</span>
+        </div>
+      </td>
+      <td>${m.age}</td>
+      <td>${m.gender}</td>
+      <td>${m.location}</td>
+      <td>${m.phone}</td>
       <td>${bM(m.status)}</td>
-      <td>${m.status==='활성'
-        ? `<button class="btn btn-danger btn-sm" onclick="sanctionMember(${m.id},'${m.name}')">제재</button>`
-        : `<button class="btn btn-secondary btn-sm" onclick="restoreMember(${m.id})">복구</button>`
-      }</td>
-    </tr>`).join('');
+      <td onclick="event.stopPropagation()" style="white-space:nowrap;display:flex;gap:4px;align-items:center;padding:8px 10px">
+        ${flagBtn}
+        <button class="btn btn-sm" style="font-size:11px;padding:3px 7px" onclick="openEditMember(${m.id})">✏️</button>
+        <button class="btn btn-sm" style="font-size:11px;padding:3px 7px;background:#fff5f5;color:#c92a2a;border:1px solid #ffd0d0" onclick="openWarningForMember('${m.name}')">⚠️</button>
+        ${m.status==='제재'?`<button class="btn btn-secondary btn-sm" style="font-size:11px;padding:3px 7px" onclick="restoreMember(${m.id})">복구</button>`:''}
+      </td>
+    </tr>
+    <tr class="member-detail-row" id="mdetail-${m.id}">
+      <td colspan="7" style="padding:0">
+        <div id="mdetail-inner-${m.id}" style="padding:16px 20px 20px;background:#f8f8fc;border-bottom:2px solid #e0e0f0"></div>
+      </td>
+    </tr>`;
+  }).join('');
 }
 
-function filterMembers(q) {
-  renderMembers(M.filter(m=>m.name.includes(q)||m.location.includes(q)||m.hobby.includes(q)));
+function toggleMemberDetail(id) {
+  const detailRow = document.getElementById('mdetail-'+id);
+  const mainRow = document.getElementById('mrow-'+id);
+  const arrow = mainRow.querySelector('.expand-arrow');
+  if(detailRow.classList.contains('open')){
+    detailRow.classList.remove('open'); mainRow.classList.remove('expanded');
+    arrow.style.transform=''; return;
+  }
+  document.querySelectorAll('.member-detail-row.open').forEach(r=>{
+    r.classList.remove('open'); r.previousElementSibling.classList.remove('expanded');
+    const a=r.previousElementSibling.querySelector('.expand-arrow'); if(a) a.style.transform='';
+  });
+  const m = M.find(x=>x.id===id); if(!m) return;
+  const led = E.filter(e=>e.leader===m.name);
+  const att = R.filter(r=>r.memberName===m.name);
+  const mwarn = WN.filter(w=>w.memberName===m.name);
+  const ledHtml = led.length
+    ? led.map(e=>`<div class="history-item"><span style="font-weight:600;font-size:13px">${e.name}</span><span style="color:#888;font-size:11px">${e.date}</span><span style="margin-left:auto">${bE(e.status)}</span></div>`).join('')
+    : '<div style="color:#bbb;font-size:12px;padding:6px 0">이력 없음</div>';
+  const attHtml = att.length
+    ? att.map(r=>`<div class="history-item"><span style="font-weight:600;font-size:13px">${r.eventName}</span><span style="color:#888;font-size:11px">${r.applyDate}</span><span style="margin-left:auto">${bA(r.attendance)}</span></div>`).join('')
+    : '<div style="color:#bbb;font-size:12px;padding:6px 0">이력 없음</div>';
+  const warnHtml = mwarn.length
+    ? mwarn.slice().reverse().map(w=>`
+        <div class="history-item" style="${w.expired?'opacity:0.45':''}">
+          ${w.type==='경고'?'<span class="badge b-sanction" style="font-size:10px;flex-shrink:0">경고</span>':'<span class="badge b-warn" style="font-size:10px;flex-shrink:0">주의</span>'}
+          <span style="font-size:12px;color:#444;flex:1">${w.reason}</span>
+          <span style="font-size:11px;color:#aaa;white-space:nowrap">${w.date}${w.expired?' (소멸)':''}</span>
+        </div>`).join('')
+    : '<div style="color:#bbb;font-size:12px;padding:6px 0">이력 없음</div>';
+  document.getElementById('mdetail-inner-'+id).innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e5e5e5">
+      <div><div style="font-size:11px;color:#888;margin-bottom:3px">관심분야</div><div style="font-size:13px">${m.hobby||'-'}</div></div>
+      <div><div style="font-size:11px;color:#888;margin-bottom:3px">가입일</div><div style="font-size:13px">${m.joinDate||'-'}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+      <div><div style="font-size:12px;font-weight:600;color:#5b5bd6;margin-bottom:8px">🏆 리더 이력 (${led.length}건)</div>${ledHtml}</div>
+      <div><div style="font-size:12px;font-weight:600;color:#5b5bd6;margin-bottom:8px">📅 참석 이력 (${att.length}건)</div>${attHtml}</div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:600;color:#c92a2a">⚠️ 경고/주의 이력 (${mwarn.length}건)</div>
+          <button class="btn btn-sm" style="font-size:10px;padding:2px 7px;background:#fff5f5;color:#c92a2a;border:1px solid #ffd0d0" onclick="event.stopPropagation();openWarningForMember('${m.name}')">+ 부여</button>
+        </div>
+        ${warnHtml}
+      </div>
+    </div>`;
+  detailRow.classList.add('open'); mainRow.classList.add('expanded');
+  arrow.style.transform='rotate(90deg)';
 }
+
+function applyMemberFilters() {
+  memberSearchQ = document.querySelector('#tab-members .search-bar').value.trim();
+  let list = M;
+  if(memberSearchQ) list = list.filter(m=>m.name.includes(memberSearchQ)||m.location.includes(memberSearchQ)||m.hobby.includes(memberSearchQ));
+  if(memberFlagFilter==='지인')   list = list.filter(m=>m.flagged);
+  if(memberFlagFilter==='미지인') list = list.filter(m=>!m.flagged);
+  renderMembers(list);
+}
+
+function setMemberFlagFilter(val, btn) {
+  memberFlagFilter = val;
+  document.querySelectorAll('.m-flag-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  applyMemberFilters();
+}
+
+function toggleMemberFlagUI(id, btn) {
+  const m = M.find(x=>x.id===id); if(!m) return;
+  const newFlag = !m.flagged;
+  m.flagged = newFlag;
+  btn.textContent = newFlag ? '⭐' : '☆';
+  btn.style.color = newFlag ? '#e67700' : '#ccc';
+  btn.title = newFlag ? '지인 해제' : '지인 표시';
+  const row = document.getElementById('mrow-'+id);
+  const existingBadge = row.querySelector('[data-flag-badge]');
+  if(newFlag && !existingBadge) {
+    const nameSpan = row.querySelector('span[style*="font-size:14px"]');
+    if(nameSpan) nameSpan.insertAdjacentHTML('afterend','<span data-flag-badge="1" style="background:#fff3bf;color:#e67700;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;margin-left:4px">⭐ 지인</span>');
+  } else if(!newFlag && existingBadge) {
+    existingBadge.remove();
+  }
+  google.script.run.withSuccessHandler(()=>{
+    toast(newFlag ? '⭐ 지인으로 표시했어요' : '지인 표시를 해제했어요');
+  }).withFailureHandler(()=>{
+    m.flagged = !newFlag; toast('저장 실패. 다시 시도해주세요');
+  }).toggleMemberFlag(id, newFlag);
+}
+
+function openEditMember(id) {
+  const m = M.find(x=>x.id===id); if(!m) return;
+  document.getElementById('em-rowId').value   = id;
+  document.getElementById('em-name').value    = m.name;
+  document.getElementById('em-age').value     = m.age;
+  document.getElementById('em-gender').value  = m.gender;
+  document.getElementById('em-phone').value   = m.phone;
+  document.getElementById('em-loc').value     = m.location;
+  document.getElementById('em-hobby').value   = m.hobby;
+  document.getElementById('em-joinDate').value= m.joinDate;
+  document.getElementById('em-status').value  = m.status;
+  openModal('editMember');
+}
+
+function saveMemberEdit() {
+  const rowId = parseInt(document.getElementById('em-rowId').value);
+  const data = {
+    name:     document.getElementById('em-name').value.trim(),
+    age:      document.getElementById('em-age').value.trim(),
+    gender:   document.getElementById('em-gender').value,
+    phone:    document.getElementById('em-phone').value.trim(),
+    location: document.getElementById('em-loc').value.trim(),
+    hobby:    document.getElementById('em-hobby').value.trim(),
+    joinDate: document.getElementById('em-joinDate').value,
+    status:   document.getElementById('em-status').value
+  };
+  if(!data.name){ toast('이름을 입력해주세요'); return; }
+  const btn = document.querySelector('#modal-editMember .btn-primary');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  google.script.run
+    .withSuccessHandler(()=>{
+      const m = M.find(x=>x.id===rowId);
+      if(m) Object.assign(m, data);
+      closeModal('editMember');
+      applyMemberFilters();
+      toast('회원 정보가 수정됐어요 ✅');
+      btn.disabled=false; btn.textContent='저장';
+    })
+    .withFailureHandler(()=>{
+      toast('저장 실패. 다시 시도해주세요');
+      btn.disabled=false; btn.textContent='저장';
+    })
+    .updateMember(rowId, data);
+}
+
+// ===== 모임 =====
+let eventStatusFilter = '전체';
 
 function loadEventsTab() {
+  initWebAppUrl();
+  document.getElementById('events-list').innerHTML='<div class="loading">불러오는 중...</div>';
   let n=0;
-  const done=()=>{ if(++n===2){ renderEvents(); renderRegs(); }};
+  const done=()=>{ if(++n===4){ renderEvents(); renderRegs(); }};
   google.script.run.withSuccessHandler(d=>{E=d;done();}).getEvents();
   google.script.run.withSuccessHandler(d=>{R=d;done();}).getRegistrations();
+  google.script.run.withSuccessHandler(d=>{PA=d;done();}).getAllApplicants();
+  google.script.run.withSuccessHandler(d=>{M=d;done();}).getMembers();
+}
+
+function setEventFilter(val, btn) {
+  eventStatusFilter = val;
+  document.querySelectorAll('#event-status-filters .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEvents();
+}
+
+function toggleEventDetail(id) {
+  const body = document.getElementById('ebody-'+id);
+  const arrow = document.getElementById('earrow-'+id);
+  if(!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if(arrow) arrow.style.transform = isOpen ? '' : 'rotate(90deg)';
 }
 
 function renderEvents() {
-  const tb = document.getElementById('events-table');
-  if(!E.length){ tb.innerHTML='<tr><td colspan="8" class="empty">등록된 모임이 없습니다</td></tr>'; return; }
-  tb.innerHTML = E.map(e=>{
+  const el = document.getElementById('events-list');
+  const list = eventStatusFilter==='전체' ? E : E.filter(e=>e.status===eventStatusFilter);
+  if(!list.length){ el.innerHTML='<div class="empty">해당 조건의 모임이 없습니다</div>'; return; }
+  el.innerHTML = list.map(e=>{
     const cnt = R.filter(r=>r.eventName===e.name).length;
-    return `<tr>
-      <td><b>${e.name}</b></td><td>${e.date}</td><td>${e.location}</td>
-      <td>${e.maxMembers||'-'}</td><td>${e.leader||'-'}</td><td>${cnt}명</td>
-      <td>${bE(e.status)}</td>
-      <td><select class="form-input" style="padding:4px;font-size:12px;width:86px" onchange="changeEventStatus(${e.id},this.value)">
-        <option ${e.status==='모집중'?'selected':''}>모집중</option>
-        <option ${e.status==='진행중'?'selected':''}>진행중</option>
-        <option ${e.status==='완료'?'selected':''}>완료</option>
-      </select></td>
-    </tr>`;
+    const pending = PA.filter(p=>p.eventName===e.name && p.status==='대기중').length;
+    const pendingBadge = pending>0
+      ? `<span style="background:#ff6b6b;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px">대기 ${pending}</span>` : '';
+    const eName = e.name.replace(/'/g,"\\'");
+    return `
+    <div class="event-card">
+      <div class="event-card-header" onclick="toggleEventDetail(${e.id})">
+        ${bE(e.status)}
+        <span class="event-card-name">${e.name}${pendingBadge}</span>
+        <div class="event-card-meta">
+          <span>👤 ${e.leader||'-'}</span>
+          <span>📅 ${fmtKorDate(e.date)}</span>
+        </div>
+        <span class="expand-arrow" id="earrow-${e.id}" style="margin-left:8px">▶</span>
+      </div>
+      <div class="event-card-body" id="ebody-${e.id}">
+        <div class="event-detail-grid">
+          <div class="event-detail-item"><div class="event-detail-label">장소</div><div class="event-detail-value">${e.location||'-'}</div></div>
+          <div class="event-detail-item"><div class="event-detail-label">최대 인원</div><div class="event-detail-value">${e.maxMembers||'∞'}명</div></div>
+          <div class="event-detail-item"><div class="event-detail-label">확정 인원</div><div class="event-detail-value">${cnt}명</div></div>
+          <div class="event-detail-item">
+            <div class="event-detail-label">상태 변경</div>
+            <select class="form-input" style="padding:4px 8px;font-size:12px;width:100%" onclick="event.stopPropagation()" onchange="changeEventStatus(${e.id},this.value)">
+              <option ${e.status==='모집중'?'selected':''}>모집중</option>
+              <option ${e.status==='진행중'?'selected':''}>진행중</option>
+              <option ${e.status==='완료'?'selected':''}>완료</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="openEventAnnounce(${e.id})">📣 공지문</button>
+          <button class="btn btn-secondary btn-sm" onclick="copyApplyLink('${eName}')">🔗 신청링크 복사</button>
+          <button class="btn btn-sm" style="background:#dbe4ff;color:#364fc7" onclick="openApplicants('${eName}')">👥 신청자 관리${pendingBadge}</button>
+        </div>
+      </div>
+    </div>`;
   }).join('');
 }
 
@@ -364,7 +1484,7 @@ function closeModal(id) {
 }
 
 function submitMember() {
-  const d={name:$('m-name'),age:$('m-age'),phone:$('m-phone'),location:$('m-loc'),hobby:$('m-hobby')};
+  const d={name:$('m-name'),age:$('m-age'),gender:$('m-gender'),phone:$('m-phone'),location:$('m-loc'),hobby:$('m-hobby')};
   if(!d.name||!d.age||!d.phone||!d.location){toast('필수 항목을 입력해주세요');return;}
   google.script.run.withSuccessHandler(()=>{closeModal('addMember');loadMembers();toast('회원이 등록됐어요 ✅');}).addMember(d);
 }
@@ -408,13 +1528,287 @@ function initSheets(){
   google.script.run.withSuccessHandler(()=>toast('시트 초기화 완료 ✅')).initSheets();
 }
 
+function fmtDate(s){
+  if(!s) return '-';
+  const d=new Date(s);
+  if(isNaN(d)) return String(s).slice(0,16);
+  return d.toLocaleDateString('ko-KR')+' '+d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+}
+function fmtKorDate(s){
+  if(!s||s==='-') return '-';
+  const dtMatch = String(s).match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
+  if(dtMatch){
+    const [,y,mo,da,h,mi]=dtMatch;
+    const dt=new Date(+y,+mo-1,+da,+(h||0),+(mi||0));
+    const days=['일','월','화','수','목','금','토'];
+    const base=`${+mo}월 ${+da}일(${days[dt.getDay()]})`;
+    return h?`${base} ${h}:${mi}`:base;
+  }
+  let d=new Date(s);
+  if(isNaN(d)){ const k=String(s).replace('오전','AM').replace('오후','PM'); d=new Date(k); }
+  if(isNaN(d)) return String(s).slice(0,16);
+  const days=['일','월','화','수','목','금','토'];
+  const mo=d.getMonth()+1,da=d.getDate(),dy=days[d.getDay()];
+  const h=d.getHours(),mi=String(d.getMinutes()).padStart(2,'0');
+  return (h||d.getMinutes())?`${mo}월 ${da}일(${dy}) ${String(h).padStart(2,'0')}:${mi}`:`${mo}월 ${da}일(${dy})`;
+}
 function $(id){return document.getElementById(id).value.trim();}
 function bM(s){return s==='활성'?'<span class="badge b-active">활성</span>':'<span class="badge b-sanction">제재</span>';}
 function bE(s){const m={'모집중':'b-recruit','진행중':'b-ongoing','완료':'b-done'};return`<span class="badge ${m[s]||''}">${s}</span>`;}
 function bA(s){return s==='출석'?'<span class="badge b-attend">출석</span>':s==='불참'?'<span class="badge b-sanction">불참</span>':'<span class="badge b-absent">미출석</span>';}
+function bApp(s){
+  if(s==='대기중') return '<span class="badge b-pending">대기중</span>';
+  if(s==='승인')   return '<span class="badge b-approved">승인</span>';
+  if(s==='거절')   return '<span class="badge b-rejected">거절</span>';
+  return `<span class="badge b-absent">${s}</span>`;
+}
+// ===== 경고/주의 관리 =====
+function loadWarnings() {
+  google.script.run.withSuccessHandler(function(data) {
+    WN = data;
+    renderWarnSummary();
+    renderWarnings();
+  }).withFailureHandler(()=>toast('경고 이력 로드 실패')).getWarnings();
+}
+
+function renderWarnSummary() {
+  const now = new Date();
+  const active = WN.filter(w => !w.expired);
+  const cautions = active.filter(w => w.type === '주의');
+  const warnings = active.filter(w => w.type === '경고');
+  const unsent = WN.filter(w => !w.messageSent);
+  document.getElementById('warning-summary').innerHTML = `
+    <div class="card"><div class="card-label">유효 경고</div><div class="card-value" style="color:#c92a2a">${warnings.length}</div><div class="card-sub">3개월 이내</div></div>
+    <div class="card"><div class="card-label">유효 주의</div><div class="card-value warn">${cautions.length}</div><div class="card-sub">3개월 이내</div></div>
+    <div class="card"><div class="card-label">미발송 안내</div><div class="card-value" style="color:${unsent.length?'#c92a2a':'inherit'}">${unsent.length}</div><div class="card-sub">1:1 미발송 건</div></div>`;
+}
+
+function renderWarnings() {
+  const filtered = WN.filter(w => {
+    if(warnFilter==='유효') return !w.expired;
+    if(warnFilter==='소멸') return w.expired;
+    return true;
+  });
+  if(!filtered.length){
+    document.getElementById('warning-list').innerHTML='<div class="empty">이력이 없습니다</div>';
+    return;
+  }
+  const rows = filtered.slice().reverse().map(w=>`
+    <tr>
+      <td>${w.date}</td>
+      <td><strong>${w.memberName}</strong></td>
+      <td>${w.type==='경고'?'<span class="badge b-sanction">경고</span>':'<span class="badge b-warn">주의</span>'}</td>
+      <td style="font-size:13px">${w.reason}</td>
+      <td style="text-align:center">
+        ${w.messageSent
+          ? '<span style="color:#2f9e44;font-size:13px">✓ 발송됨</span>'
+          : `<button class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 8px" onclick="doMarkSent(${w.id})">발송 체크</button>`}
+      </td>
+      <td style="font-size:12px;color:#888">${w.note||''}</td>
+      <td>${w.expired?'<span class="badge b-done">소멸</span>':'<span class="badge b-active">유효</span>'}</td>
+    </tr>`).join('');
+  document.getElementById('warning-list').innerHTML=`
+    <table class="data-table">
+      <thead><tr><th>날짜</th><th>회원</th><th>유형</th><th>사유</th><th>1:1 발송</th><th>비고</th><th>상태</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function setWarnFilter(f, btn) {
+  warnFilter = f;
+  document.querySelectorAll('.warn-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderWarnings();
+}
+
+function openWarningForMember(memberName) {
+  const doOpen = () => {
+    warnType = '주의';
+    document.getElementById('w-tab-caution').classList.add('active');
+    document.getElementById('w-tab-warning').classList.remove('active');
+    const sel = document.getElementById('w-member');
+    const opts = M.filter(m=>m.status==='활성' || m.name===memberName);
+    sel.innerHTML = '<option value="">회원을 선택하세요</option>' +
+      opts.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
+    sel.value = memberName;
+    document.getElementById('w-note').value='';
+    document.getElementById('w-sent').checked=false;
+    updateWarnReasons();
+    updateWarnTemplate();
+    openModal('warning');
+  };
+  if(!M.length) {
+    google.script.run.withSuccessHandler(d=>{M=d;doOpen();})
+      .withFailureHandler(()=>toast('회원 정보 로드 실패')).getMembers();
+  } else { doOpen(); }
+}
+
+function openWarningModal() {
+  if(!M.length) {
+    google.script.run.withSuccessHandler(function(data){ M=data; _doOpenWarningModal(); })
+      .withFailureHandler(()=>toast('회원 정보 로드 실패')).getMembers();
+  } else {
+    _doOpenWarningModal();
+  }
+}
+function _doOpenWarningModal() {
+  warnType = '주의';
+  document.getElementById('w-tab-caution').classList.add('active');
+  document.getElementById('w-tab-warning').classList.remove('active');
+  const sel = document.getElementById('w-member');
+  sel.innerHTML = '<option value="">회원을 선택하세요</option>' +
+    M.filter(m=>m.status==='활성').map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
+  document.getElementById('w-note').value='';
+  document.getElementById('w-sent').checked=false;
+  updateWarnReasons();
+  openModal('warning');
+}
+
+function selectWarnType(type, btn) {
+  warnType = type;
+  document.querySelectorAll('#modal-warning .atab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  updateWarnReasons();
+}
+
+function updateWarnReasons() {
+  const reasons = warnType==='주의'
+    ? ['연락 없이 30분 미만 지각','채팅방 비매너','기타']
+    : ['연락 없이 30분 이상 지각','무단 불참','주의 2회 누적','기타'];
+  document.getElementById('w-reason').innerHTML = reasons.map(r=>`<option value="${r}">${r}</option>`).join('');
+  updateWarnTemplate();
+}
+
+function updateWarnTemplate() {
+  const name = document.getElementById('w-member').value || '회원';
+  const reason = document.getElementById('w-reason').value;
+  document.getElementById('w-template').value = getWarnTemplate(warnType, reason, name);
+}
+
+function getWarnTemplate(type, reason, name) {
+  const greet = type==='주의'
+    ? `안녕하세요, ${name}님 😊\n2030 안산 소모임 운영진입니다.\n\n`
+    : `안녕하세요, ${name}님.\n2030 안산 소모임 운영진입니다.\n\n`;
+  const expiry = `경고는 발생일로부터 3개월 후 자동 소멸됩니다.\n\n`;
+  const appeal = `이의가 있으시면 7일 이내 운영진에게 말씀해주세요.`;
+  const cautionTail = `\n\n이번은 주의로 안내드립니다. 주의 2회 누적 시 경고로 전환됩니다.`;
+  if(type==='주의'){
+    if(reason.includes('지각')) return greet+`지난 모임에 연락 없이 늦게 도착하셨습니다.\n앞으로 늦으실 것 같을 때는 미리 리더 또는 운영진에게 연락 부탁드려요!`+cautionTail+`\n함께 좋은 소모임 만들어가요 🙌`;
+    if(reason.includes('비매너')) return greet+`채팅방 이용 수칙과 관련하여 주의 안내드립니다.\n모든 회원이 편하게 소통할 수 있도록 함께 노력해주세요!`+cautionTail+`\n궁금한 점이 있으면 언제든 운영진에게 문의해주세요 😊`;
+    return greet+`[사유를 입력해주세요]`+cautionTail+`\n이의가 있으시면 7일 이내 운영진에게 말씀해주세요.`;
+  } else {
+    if(reason.includes('30분 이상')) return greet+`지난 모임에 연락 없이 30분 이상 늦으셔서 이용 규칙에 따라 경고 1회를 안내드립니다.\n`+expiry+`앞으로 늦으실 것 같을 때는 미리 연락 주시면 패널티 없이 처리됩니다.\n`+appeal;
+    if(reason.includes('무단')) return greet+`모임에 연락 없이 불참하셔서 이용 규칙에 따라 경고 1회를 안내드립니다.\n`+expiry+`불참 시 미리 연락 주시면 패널티 없이 처리됩니다.\n`+appeal;
+    if(reason.includes('누적')) return greet+`이전에 안내드린 주의가 2회 누적되어 이용 규칙에 따라 경고 1회로 전환됨을 안내드립니다.\n`+expiry+appeal+`\n함께 좋은 소모임 만들어가요 😊`;
+    return greet+`[사유를 입력해주세요]\n`+expiry+appeal;
+  }
+}
+
+function copyWarnMsg() {
+  const text = document.getElementById('w-template').value;
+  navigator.clipboard.writeText(text).then(()=>toast('메시지 복사됨 📋'));
+}
+
+function saveWarning() {
+  const name = document.getElementById('w-member').value;
+  if(!name){ toast('회원을 선택해주세요'); return; }
+  const reason = document.getElementById('w-reason').value;
+  if(!document.getElementById('w-sent').checked){ toast('1:1 메시지 발송 후 체크해주세요'); return; }
+  const data = { memberName: name, type: warnType, reason, note: document.getElementById('w-note').value.trim() };
+  google.script.run.withSuccessHandler(function(r) {
+    if(r.success){
+      toast(`${warnType} 저장 완료 ✅`);
+      closeModal('warning');
+      loadWarnings();
+    }
+  }).withFailureHandler(()=>toast('저장 실패')).addWarning(data);
+}
+
+function doMarkSent(rowId) {
+  google.script.run.withSuccessHandler(function(r) {
+    if(r.success){ toast('발송 완료로 표시됐어요 ✓'); loadWarnings(); }
+  }).markWarningMessageSent(rowId);
+}
+
+function initNoticesTab() {
+  document.getElementById('notice-photo-text').value =
+`📸 [모임 시작!]
+
+오늘도 즐거운 시간 되세요 🥳
+
+모임 중 사진 많이 찍어서
+이 채팅방에 공유해 주세요 📷
+
+소중한 추억으로 함께 기록해요 😊`;
+  updateInquiryNotice();
+  updateWelcomeNotice();
+}
+
+function updateInquiryNotice() {
+  const url = document.getElementById('notice-inquiry-url').value.trim();
+  const linkLine = url || '[1:1 오픈채팅 링크를 위에 입력해주세요]';
+  document.getElementById('notice-inquiry-text').value =
+`📣 [공지] 1:1 문의 · 신고 창구
+
+운영과 관련해 불편하신 점이나
+하고 싶은 말씀이 있으신 분은
+아래 링크로 운영진에게 직접 연락주세요 💬
+
+🔗 1:1 문의/신고
+${linkLine}
+
+소모임이 더 좋아질 수 있도록
+언제든지 편하게 말씀해 주세요 🙏`;
+}
+
+function updateWelcomeNotice() {
+  const name = document.getElementById('notice-welcome-name').value.trim() || '○○';
+  document.getElementById('notice-welcome-text').value =
+`👋 ${name}님, 어서 오세요!
+
+2030 안산 소모임에 오신 걸 환영합니다 🎉
+
+모임 신청 방법, 이용 규칙 등
+궁금한 점이 있으면 편하게 물어보세요 😊
+
+함께해서 반가워요!`;
+}
+
+function copyNotice(id) {
+  const text = document.getElementById(id).value;
+  if(!text) return;
+  navigator.clipboard.writeText(text).then(()=>toast('공지 문구가 복사됐어요 📋'));
+}
+
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
-loadDashboard();
+google.script.run
+  .withSuccessHandler(function(res) {
+    if (res.allowed) {
+      myEmail = res.email || '';
+      document.getElementById('auth-overlay').style.display = 'none';
+      loadDashboard();
+      google.script.run.withSuccessHandler(u=>{webAppUrl=u;}).getWebAppUrl();
+      google.script.run.withSuccessHandler(function(ops){
+        OPS = ops || [];
+        var me = OPS.find(function(o){ return o.email === myEmail; });
+        myOpName = me ? me.name : '';
+      }).getOperators();
+    } else {
+      var title = document.getElementById('ao-title');
+      var sub = document.getElementById('ao-sub');
+      document.querySelector('#auth-overlay .ao-icon').textContent = '🚫';
+      title.textContent = '접근 권한이 없습니다';
+      sub.innerHTML = '운영진 계정으로만 접근할 수 있어요.<br>문의: capshinsmg@gmail.com'
+        + (res.email ? '<br><span class="ao-email">' + res.email + '</span>' : '');
+    }
+  })
+  .withFailureHandler(function(err) {
+    document.querySelector('#auth-overlay .ao-icon').textContent = '⚠️';
+    document.getElementById('ao-title').textContent = '인증 오류';
+    document.getElementById('ao-sub').textContent = '페이지를 새로고침 해주세요.';
+  })
+  .checkAuth();
 </script>
 </body>
 </html>

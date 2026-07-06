@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NonInteractive -File \"C:\\Users\\ADMINI~1\\Desktop\\소모임~1\\CLAUDE~1\\hooks\\CLASP-~1.PS1\"",
+            "shell": "powershell",
+            "async": true,
+            "timeout": 120,
+            "statusMessage": "Apps Script 동기화 중..."
+          }
+        ]
+      }
+    ]
+  }
+}
