@@ -298,8 +298,8 @@ select.form-input{cursor:pointer}
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>회원명</th><th>모임명</th><th>신청일</th><th>출석</th><th>변경</th></tr></thead>
-          <tbody id="regs-table"><tr><td colspan="5" class="loading">불러오는 중...</td></tr></tbody>
+          <thead><tr><th>회원명</th><th>모임명</th><th>신청일</th><th>출석</th><th>변경</th><th>관리</th></tr></thead>
+          <tbody id="regs-table"><tr><td colspan="6" class="loading">불러오는 중...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -568,6 +568,28 @@ select.form-input{cursor:pointer}
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('addEvent')">취소</button>
       <button class="btn btn-primary" onclick="submitEvent()">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- 모임 수정 모달 -->
+<div id="modal-editEvent" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">✏️ 모임 수정</div>
+    <input type="hidden" id="ee-rowId">
+    <div class="form-group"><label class="form-label">모임명 *</label><input class="form-input" id="ee-name"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">날짜 *</label><input class="form-input" id="ee-date" type="date"></div>
+      <div class="form-group"><label class="form-label">시간</label><input class="form-input" id="ee-time" type="time"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">장소 *</label><input class="form-input" id="ee-loc"></div>
+      <div class="form-group"><label class="form-label">최대 인원</label><input class="form-input" id="ee-max" type="number"></div>
+    </div>
+    <div class="form-group"><label class="form-label">리더</label><input class="form-input" id="ee-leader"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editEvent')">취소</button>
+      <button class="btn btn-primary" onclick="saveEventEdit()">저장</button>
     </div>
   </div>
 </div>
@@ -1344,12 +1366,14 @@ function saveMemberEdit() {
   const btn = document.querySelector('#modal-editMember .btn-primary');
   btn.disabled = true; btn.textContent = '저장 중...';
   google.script.run
-    .withSuccessHandler(()=>{
+    .withSuccessHandler((r)=>{
       const m = M.find(x=>x.id===rowId);
       if(m) Object.assign(m, data);
       closeModal('editMember');
       applyMemberFilters();
-      toast('회원 정보가 수정됐어요 ✅');
+      toast(r && r.synced > 0
+        ? `회원 정보 수정 완료 — 리더명·신청 이력 등 ${r.synced}건 함께 변경됐어요 ✅`
+        : '회원 정보가 수정됐어요 ✅');
       btn.disabled=false; btn.textContent='저장';
     })
     .withFailureHandler(()=>{
@@ -1428,6 +1452,8 @@ function renderEvents() {
           <button class="btn btn-secondary btn-sm" onclick="openEventAnnounce(${e.id})">📣 공지문</button>
           <button class="btn btn-secondary btn-sm" onclick="copyApplyLink('${eName}')">🔗 신청링크 복사</button>
           <button class="btn btn-sm" style="background:#dbe4ff;color:#364fc7" onclick="openApplicants('${eName}')">👥 신청자 관리${pendingBadge}</button>
+          <button class="btn btn-secondary btn-sm" onclick="openEditEvent(${e.id})">✏️ 수정</button>
+          <button class="btn btn-sm" style="background:#fff5f5;color:#c92a2a;border:1px solid #ffd0d0" onclick="deleteEventUI(${e.id})">🗑️ 삭제</button>
         </div>
       </div>
     </div>`;
@@ -1436,7 +1462,7 @@ function renderEvents() {
 
 function renderRegs() {
   const tb = document.getElementById('regs-table');
-  if(!R.length){ tb.innerHTML='<tr><td colspan="5" class="empty">신청 내역이 없습니다</td></tr>'; return; }
+  if(!R.length){ tb.innerHTML='<tr><td colspan="6" class="empty">신청 내역이 없습니다</td></tr>'; return; }
   tb.innerHTML = R.map(r=>`
     <tr>
       <td>${r.memberName}</td><td>${r.eventName}</td><td>${r.applyDate}</td>
@@ -1446,7 +1472,65 @@ function renderRegs() {
         <option ${r.attendance==='출석'?'selected':''}>출석</option>
         <option ${r.attendance==='불참'?'selected':''}>불참</option>
       </select></td>
+      <td><button class="btn btn-sm" style="font-size:11px;padding:3px 8px;background:#fff5f5;color:#c92a2a;border:1px solid #ffd0d0" onclick="deleteRegUI(${r.id})">🗑️</button></td>
     </tr>`).join('');
+}
+
+function openEditEvent(id) {
+  const e = E.find(x=>x.id===id); if(!e) return;
+  document.getElementById('ee-rowId').value = id;
+  document.getElementById('ee-name').value = e.name;
+  const m = String(e.date||'').match(/^(\d{4}-\d{2}-\d{2})(?:[T\s](\d{2}:\d{2}))?/);
+  document.getElementById('ee-date').value = m ? m[1] : '';
+  document.getElementById('ee-time').value = (m && m[2]) ? m[2] : '';
+  document.getElementById('ee-loc').value = e.location||'';
+  document.getElementById('ee-max').value = e.maxMembers||'';
+  document.getElementById('ee-leader').value = e.leader||'';
+  openModal('editEvent');
+}
+
+function saveEventEdit() {
+  const rowId = parseInt(document.getElementById('ee-rowId').value);
+  const date = document.getElementById('ee-date').value;
+  const time = document.getElementById('ee-time').value;
+  const d = {
+    name: document.getElementById('ee-name').value.trim(),
+    date: time ? date+' '+time : date,
+    location: document.getElementById('ee-loc').value.trim(),
+    maxMembers: document.getElementById('ee-max').value,
+    leader: document.getElementById('ee-leader').value.trim()
+  };
+  if(!d.name||!date||!d.location){ toast('필수 항목을 입력해주세요'); return; }
+  const btn = document.querySelector('#modal-editEvent .btn-primary');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  google.script.run
+    .withSuccessHandler(()=>{
+      btn.disabled=false; btn.textContent='저장';
+      closeModal('editEvent'); loadEventsTab(); toast('모임 정보가 수정됐어요 ✅');
+    })
+    .withFailureHandler(()=>{ btn.disabled=false; btn.textContent='저장'; toast('저장 실패. 다시 시도해주세요'); })
+    .updateEvent(rowId, d);
+}
+
+function deleteEventUI(id) {
+  const e = E.find(x=>x.id===id); if(!e) return;
+  const linked = R.filter(r=>r.eventName===e.name).length + PA.filter(p=>p.eventName===e.name).length;
+  let msg = `'${e.name}' 모임을 삭제할까요?`;
+  if(linked>0) msg += `\n\n⚠️ 연결된 신청 내역 ${linked}건도 함께 삭제됩니다.`;
+  if(!confirm(msg)) return;
+  google.script.run
+    .withSuccessHandler(()=>{ loadEventsTab(); toast('🗑️ 모임이 삭제됐어요'); })
+    .withFailureHandler(()=>toast('삭제 실패. 다시 시도해주세요'))
+    .deleteEvent(id);
+}
+
+function deleteRegUI(id) {
+  const r = R.find(x=>x.id===id); if(!r) return;
+  if(!confirm(`${r.memberName}님의 '${r.eventName}' 신청을 삭제할까요?`)) return;
+  google.script.run
+    .withSuccessHandler(()=>{ loadEventsTab(); toast('신청 내역이 삭제됐어요'); })
+    .withFailureHandler(()=>toast('삭제 실패. 다시 시도해주세요'))
+    .deleteRegistration(id);
 }
 
 function loadDuplicates() {

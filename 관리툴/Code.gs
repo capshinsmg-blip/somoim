@@ -558,25 +558,44 @@ function getMembers_() {
   }));
 }
 
+// 이름 변경 시 모든 시트의 이름 참조를 동기화 (리더명, 신청 내역, 경고/제재 이력 등)
+function syncMemberNameChange_(oldName, newName) {
+  const targets = [
+    { name: '모임목록',     col: 5 },  // 리더
+    { name: '신청현황',     col: 1 },  // 회원명
+    { name: '리더신청',     col: 2 },  // 이름
+    { name: '모임신청대기', col: 3 },  // 이름
+    { name: '제재기록',     col: 1 },  // 회원명
+    { name: '경고이력',     col: 2 }   // 회원이름
+  ];
+  let total = 0;
+  targets.forEach(function(t) {
+    const sheet = getSheet(t.name);
+    if (!sheet) return;
+    const data = sheet.getDataRange().getValues();
+    data.slice(1).forEach(function(row, i) {
+      if (String(row[t.col - 1]) === oldName) {
+        sheet.getRange(i + 2, t.col).setValue(newName);
+        total++;
+      }
+    });
+  });
+  return total;
+}
+
 function updateMember(rowId, data) {
   requireAuth_();
   const sheet = getSheet('회원목록');
-  // 이름 변경 시 리더신청 시트도 동기화
   const oldName = String(sheet.getRange(rowId, 1).getValue() || '');
   sheet.getRange(rowId, 1, 1, 8).setValues([[
     data.name, data.age, data.gender, data.phone,
     data.location, data.hobby, data.joinDate, data.status
   ]]);
+  let synced = 0;
   if (oldName && data.name && oldName !== data.name) {
-    const leaderSheet = getSheet('리더신청');
-    if (leaderSheet) {
-      const lData = leaderSheet.getDataRange().getValues();
-      lData.slice(1).forEach(function(row, i) {
-        if (String(row[1]) === oldName) leaderSheet.getRange(i + 2, 2).setValue(data.name);
-      });
-    }
+    synced = syncMemberNameChange_(oldName, data.name);
   }
-  return { success: true };
+  return { success: true, synced: synced };
 }
 
 function toggleMemberFlag(rowId, flag) {
@@ -638,6 +657,51 @@ function addEvent(data) {
 function updateEventStatus(rowId, status) {
   requireAuth_();
   getSheet('모임목록').getRange(rowId, 6).setValue(status);
+  return { success: true };
+}
+
+function updateEvent(rowId, data) {
+  requireAuth_();
+  const sheet = getSheet('모임목록');
+  const oldName = String(sheet.getRange(rowId, 1).getValue() || '');
+  sheet.getRange(rowId, 1, 1, 5).setValues([[
+    data.name, data.date, data.location, data.maxMembers, data.leader
+  ]]);
+  // 모임명 변경 시 신청 내역의 모임명도 동기화
+  if (oldName && data.name && oldName !== data.name) {
+    ['신청현황', '모임신청대기'].forEach(function(sn) {
+      const s = getSheet(sn);
+      if (!s) return;
+      const d = s.getDataRange().getValues();
+      d.slice(1).forEach(function(row, i) {
+        if (String(row[1]) === oldName) s.getRange(i + 2, 2).setValue(data.name);
+      });
+    });
+  }
+  return { success: true };
+}
+
+function deleteEvent(rowId) {
+  requireAuth_();
+  const sheet = getSheet('모임목록');
+  const name = String(sheet.getRange(rowId, 1).getValue() || '');
+  sheet.deleteRow(rowId);
+  // 연결된 신청 내역도 함께 삭제 (아래에서부터 지워 행 밀림 방지)
+  let removed = 0;
+  ['신청현황', '모임신청대기'].forEach(function(sn) {
+    const s = getSheet(sn);
+    if (!s) return;
+    const d = s.getDataRange().getValues();
+    for (var i = d.length - 1; i >= 1; i--) {
+      if (String(d[i][1]) === name) { s.deleteRow(i + 1); removed++; }
+    }
+  });
+  return { success: true, removed: removed };
+}
+
+function deleteRegistration(rowId) {
+  requireAuth_();
+  getSheet('신청현황').deleteRow(rowId);
   return { success: true };
 }
 
