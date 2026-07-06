@@ -40,13 +40,16 @@ function fmtGasDate_(v) {
 
 function fmtKorDate_(s) {
   if (!s) return '';
-  var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
-  if (!m) return String(s);
-  var days = ['일','월','화','수','목','금','토'];
-  var dt = new Date(+m[1], +m[2]-1, +m[3], +(m[4]||0), +(m[5]||0));
-  var result = (+m[2]) + '월 ' + (+m[3]) + '일(' + days[dt.getDay()] + ')';
-  if (m[4]) result += ' ' + ('0'+m[4]).slice(-2) + ':' + m[5];
-  return result;
+  // 여러 회차는 ' / '로 이어붙여 저장 — 각각 포맷 후 다시 결합
+  return String(s).split(' / ').map(function(part) {
+    var m = part.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
+    if (!m) return part;
+    var days = ['일','월','화','수','목','금','토'];
+    var dt = new Date(+m[1], +m[2]-1, +m[3], +(m[4]||0), +(m[5]||0));
+    var result = (+m[2]) + '월 ' + (+m[3]) + '일(' + days[dt.getDay()] + ')';
+    if (m[4]) result += ' ' + ('0'+m[4]).slice(-2) + ':' + m[5];
+    return result;
+  }).join(' / ');
 }
 
 function getShortUrl(longUrl) {
@@ -366,6 +369,8 @@ textarea.in{height:84px;resize:none;line-height:1.5}
 .row2>div{flex:1}
 .errbox{display:none;background:#fff5f5;border:1px solid #ffd6d6;color:#c92a2a;font-size:13px;border-radius:10px;padding:12px;margin-top:14px;text-align:center;line-height:1.6}
 .errbox.show{display:block}
+.apply-note{background:#fff8e1;border:1px solid #ffe08a;color:#8a6d1a;font-size:12px;line-height:1.65;border-radius:10px;padding:11px 13px;margin-top:14px}
+.apply-note b{font-weight:700}
 .kbtn{display:inline-block;margin-top:8px;background:#FEE500;color:#3c1e1e;font-size:12.5px;font-weight:700;padding:8px 16px;border-radius:8px;text-decoration:none}
 .sbtn{width:100%;margin-top:16px;padding:14px;background:#5b5bd6;color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
 .sbtn:disabled{background:#a9a9d0}
@@ -410,6 +415,10 @@ textarea.in{height:84px;resize:none;line-height:1.5}
       <input class="in" id="a-name" placeholder="가입 시 이름">
       <label>연락처</label>
       <input class="in" id="a-phone" type="tel" placeholder="01012345678">
+      <div class="apply-note">
+        ⚠️ 이 모임은 <b>전 회차 참석 조건</b>이에요. 모든 회차에 참석 가능한 경우에만 신청해 주세요.<br>
+        🔒 신청 시 입력하신 <b>이름·연락처가 모임 리더에게 전달</b>돼요.
+      </div>
       <div class="errbox" id="a-err"></div>
       <button class="sbtn" id="a-btn" onclick="submitApply()">신청하기</button>
     </div>
@@ -1040,13 +1049,9 @@ function approveLeaderApp(rowId) {
   const row = sheet.getRange(rowId, 1, 1, 13).getValues()[0];
   const eventSheet = getSheet('모임목록');
   const dates = [row[5], row[6], row[7]].filter(d => d && String(d).trim() !== '');
-  if (dates.length <= 1) {
-    eventSheet.appendRow([row[3], dates[0] || '', row[8], row[9], row[1], '모집중']);
-  } else {
-    dates.forEach((date, i) => {
-      eventSheet.appendRow([`${row[3]} (${i+1}회차)`, date, row[8], row[9], row[1], '모집중']);
-    });
-  }
+  // 회차별로 쪼개지 않고 한 모임으로 묶어 생성 — 한 번 신청 = 전 회차 참석
+  const dateStr = dates.map(d => fmtGasDate_(d)).join(' / ');
+  eventSheet.appendRow([row[3], dateStr, row[8], row[9], row[1], '모집중']);
   sheet.getRange(rowId, 13).setValue('승인');
   return { success: true };
 }
@@ -1166,5 +1171,36 @@ function addWarning(data) {
 function markWarningMessageSent(rowId) {
   requireAuth_();
   getOrCreateWarningSheet_().getRange(rowId, 5).setValue(true);
+  return { success: true };
+}
+
+// ===== 공지 템플릿 (운영자 편집·저장) =====
+// 저장된 커스텀 문구만 반환 — 없으면 프론트가 기본값 사용
+function getNoticeTemplates() {
+  requireAuth_();
+  const raw = PropertiesService.getScriptProperties().getProperty('noticeTemplates');
+  return raw ? JSON.parse(raw) : {};
+}
+
+function saveNoticeTemplate(key, text) {
+  requireAuth_();
+  const props = PropertiesService.getScriptProperties();
+  const raw = props.getProperty('noticeTemplates');
+  const obj = raw ? JSON.parse(raw) : {};
+  obj[key] = String(text || '');
+  props.setProperty('noticeTemplates', JSON.stringify(obj));
+  return { success: true };
+}
+
+// 특정 템플릿을 기본값으로 되돌림 (저장된 커스텀 삭제)
+function resetNoticeTemplate(key) {
+  requireAuth_();
+  const props = PropertiesService.getScriptProperties();
+  const raw = props.getProperty('noticeTemplates');
+  if (raw) {
+    const obj = JSON.parse(raw);
+    delete obj[key];
+    props.setProperty('noticeTemplates', JSON.stringify(obj));
+  }
   return { success: true };
 }

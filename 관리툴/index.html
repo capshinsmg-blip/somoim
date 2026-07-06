@@ -324,13 +324,15 @@ select.form-input{cursor:pointer}
       <!-- 1:1 문의/신고 공지 -->
       <div class="notice-card">
         <div class="notice-card-title">📣 1:1 문의 · 신고 공지</div>
-        <p class="notice-card-desc">오픈채팅봇으로 공지방에 매일 자동 발송되는 문구예요. 1:1 오픈채팅 링크를 입력하면 바로 완성됩니다.</p>
+        <p class="notice-card-desc">오픈채팅봇으로 공지방에 매일 자동 발송되는 문구예요. 문구를 직접 수정 후 <b>저장</b>할 수 있어요. 복사 시 <code>{link}</code> 자리에 아래 링크가 자동으로 들어갑니다.</p>
         <div class="form-group">
           <label class="form-label">1:1 오픈채팅 링크</label>
-          <input class="form-input" id="notice-inquiry-url" placeholder="https://open.kakao.com/..." oninput="updateInquiryNotice()">
+          <input class="form-input" id="notice-inquiry-url" placeholder="https://open.kakao.com/...">
         </div>
-        <textarea id="notice-inquiry-text" class="form-input" style="height:180px;resize:none;font-size:12px;line-height:1.8;font-family:inherit" readonly></textarea>
-        <div style="text-align:right;margin-top:8px">
+        <textarea id="notice-inquiry-text" class="form-input" style="height:180px;resize:vertical;font-size:12px;line-height:1.8;font-family:inherit"></textarea>
+        <div style="text-align:right;margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-secondary btn-sm" onclick="resetNotice('inquiry','notice-inquiry-text')">↩︎ 기본값</button>
+          <button class="btn btn-secondary btn-sm" onclick="saveNotice('inquiry','notice-inquiry-text')">💾 저장</button>
           <button class="btn btn-primary btn-sm" onclick="copyNotice('notice-inquiry-text')">📋 복사</button>
         </div>
       </div>
@@ -338,9 +340,11 @@ select.form-input{cursor:pointer}
       <!-- 활동사진 공지 -->
       <div class="notice-card">
         <div class="notice-card-title">📸 활동사진 공유 요청</div>
-        <p class="notice-card-desc">모임이 시작되는 시간에 채팅방에 올리는 문구예요.</p>
-        <textarea id="notice-photo-text" class="form-input" style="height:160px;resize:none;font-size:12px;line-height:1.8;font-family:inherit" readonly></textarea>
-        <div style="text-align:right;margin-top:8px">
+        <p class="notice-card-desc">모임이 시작되는 시간에 채팅방에 올리는 문구예요. 직접 수정 후 <b>저장</b>할 수 있어요.</p>
+        <textarea id="notice-photo-text" class="form-input" style="height:160px;resize:vertical;font-size:12px;line-height:1.8;font-family:inherit"></textarea>
+        <div style="text-align:right;margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-secondary btn-sm" onclick="resetNotice('photo','notice-photo-text')">↩︎ 기본값</button>
+          <button class="btn btn-secondary btn-sm" onclick="saveNotice('photo','notice-photo-text')">💾 저장</button>
           <button class="btn btn-primary btn-sm" onclick="copyNotice('notice-photo-text')">📋 복사</button>
         </div>
       </div>
@@ -348,13 +352,15 @@ select.form-input{cursor:pointer}
       <!-- 환영인사 -->
       <div class="notice-card">
         <div class="notice-card-title">👋 신규 입장 환영인사</div>
-        <p class="notice-card-desc">새 회원이 채팅방에 처음 입장했을 때 올리는 환영 문구예요. 이름을 입력하면 자동으로 완성됩니다.</p>
+        <p class="notice-card-desc">새 회원이 채팅방에 처음 입장했을 때 올리는 환영 문구예요. 직접 수정 후 <b>저장</b>할 수 있어요. 복사 시 <code>{name}</code> 자리에 아래 이름이 자동으로 들어갑니다.</p>
         <div class="form-group">
           <label class="form-label">회원 이름</label>
-          <input class="form-input" id="notice-welcome-name" placeholder="홍길동" oninput="updateWelcomeNotice()">
+          <input class="form-input" id="notice-welcome-name" placeholder="홍길동">
         </div>
-        <textarea id="notice-welcome-text" class="form-input" style="height:170px;resize:none;font-size:12px;line-height:1.8;font-family:inherit" readonly></textarea>
-        <div style="text-align:right;margin-top:8px">
+        <textarea id="notice-welcome-text" class="form-input" style="height:170px;resize:vertical;font-size:12px;line-height:1.8;font-family:inherit"></textarea>
+        <div style="text-align:right;margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-secondary btn-sm" onclick="resetNotice('welcome','notice-welcome-text')">↩︎ 기본값</button>
+          <button class="btn btn-secondary btn-sm" onclick="saveNotice('welcome','notice-welcome-text')">💾 저장</button>
           <button class="btn btn-primary btn-sm" onclick="copyNotice('notice-welcome-text')">📋 복사</button>
         </div>
       </div>
@@ -1806,24 +1812,9 @@ function doMarkSent(rowId) {
   }).markWarningMessageSent(rowId);
 }
 
-function initNoticesTab() {
-  document.getElementById('notice-photo-text').value =
-`📸 [모임 시작!]
-
-오늘도 즐거운 시간 되세요 🥳
-
-모임 중 사진 많이 찍어서
-이 채팅방에 공유해 주세요 📷
-
-소중한 추억으로 함께 기록해요 😊`;
-  updateInquiryNotice();
-  updateWelcomeNotice();
-}
-
-function updateInquiryNotice() {
-  const url = document.getElementById('notice-inquiry-url').value.trim();
-  const linkLine = url || '[1:1 오픈채팅 링크를 위에 입력해주세요]';
-  document.getElementById('notice-inquiry-text').value =
+// 공지 템플릿 기본값 — {link}, {name}은 복사 시 입력값으로 치환됨
+var NOTICE_DEFAULTS = {
+  inquiry:
 `📣 [공지] 1:1 문의 · 신고 창구
 
 운영과 관련해 불편하신 점이나
@@ -1831,28 +1822,76 @@ function updateInquiryNotice() {
 아래 링크로 운영진에게 직접 연락주세요 💬
 
 🔗 1:1 문의/신고
-${linkLine}
+{link}
 
 소모임이 더 좋아질 수 있도록
-언제든지 편하게 말씀해 주세요 🙏`;
-}
+언제든지 편하게 말씀해 주세요 🙏`,
+  photo:
+`📸 [모임 시작!]
 
-function updateWelcomeNotice() {
-  const name = document.getElementById('notice-welcome-name').value.trim() || '○○';
-  document.getElementById('notice-welcome-text').value =
-`👋 ${name}님, 어서 오세요!
+오늘도 즐거운 시간 되세요 🥳
+
+모임 중 사진 많이 찍어서
+이 채팅방에 공유해 주세요 📷
+
+소중한 추억으로 함께 기록해요 😊`,
+  welcome:
+`👋 {name}님, 어서 오세요!
 
 2030 안산 소모임에 오신 걸 환영합니다 🎉
 
 모임 신청 방법, 이용 규칙 등
 궁금한 점이 있으면 편하게 물어보세요 😊
 
-함께해서 반가워요!`;
+함께해서 반가워요!`
+};
+var NOTICE_FIELD = { inquiry:'notice-inquiry-text', photo:'notice-photo-text', welcome:'notice-welcome-text' };
+
+function initNoticesTab() {
+  google.script.run
+    .withSuccessHandler(function(saved){
+      saved = saved || {};
+      Object.keys(NOTICE_DEFAULTS).forEach(function(key){
+        var el = document.getElementById(NOTICE_FIELD[key]);
+        el.value = (saved[key] != null && saved[key] !== '') ? saved[key] : NOTICE_DEFAULTS[key];
+      });
+    })
+    .withFailureHandler(function(){
+      Object.keys(NOTICE_DEFAULTS).forEach(function(key){
+        document.getElementById(NOTICE_FIELD[key]).value = NOTICE_DEFAULTS[key];
+      });
+    })
+    .getNoticeTemplates();
+}
+
+function saveNotice(key, id) {
+  var text = document.getElementById(id).value;
+  google.script.run
+    .withSuccessHandler(function(r){ toast(r && r.success ? '저장됐어요 💾' : '저장 실패 😢'); })
+    .withFailureHandler(function(){ toast('저장 실패 😢'); })
+    .saveNoticeTemplate(key, text);
+}
+
+function resetNotice(key, id) {
+  if(!confirm('기본 문구로 되돌릴까요? 저장했던 수정 내용이 삭제됩니다.')) return;
+  document.getElementById(id).value = NOTICE_DEFAULTS[key];
+  google.script.run
+    .withSuccessHandler(function(){ toast('기본값으로 되돌렸어요 ↩︎'); })
+    .withFailureHandler(function(){ toast('처리 실패 😢'); })
+    .resetNoticeTemplate(key);
 }
 
 function copyNotice(id) {
-  const text = document.getElementById(id).value;
+  var text = document.getElementById(id).value;
   if(!text) return;
+  if(id==='notice-inquiry-text'){
+    var url = document.getElementById('notice-inquiry-url').value.trim() || '[1:1 오픈채팅 링크를 입력해주세요]';
+    text = text.replace(/\{link\}/g, url);
+  }
+  if(id==='notice-welcome-text'){
+    var name = document.getElementById('notice-welcome-name').value.trim() || '○○';
+    text = text.replace(/\{name\}/g, name);
+  }
   navigator.clipboard.writeText(text).then(()=>toast('공지 문구가 복사됐어요 📋'));
 }
 

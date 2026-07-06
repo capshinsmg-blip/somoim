@@ -56,6 +56,8 @@ textarea.in{height:84px;resize:none;line-height:1.5}
 .row2>div{flex:1}
 .errbox{display:none;background:#fff5f5;border:1px solid #ffd6d6;color:#c92a2a;font-size:13px;border-radius:10px;padding:12px;margin-top:14px;text-align:center;line-height:1.6}
 .errbox.show{display:block}
+.apply-note{background:#fff8e1;border:1px solid #ffe08a;color:#8a6d1a;font-size:12px;line-height:1.65;border-radius:10px;padding:11px 13px;margin-top:14px}
+.apply-note b{font-weight:700}
 .kbtn{display:inline-block;margin-top:8px;background:#FEE500;color:#3c1e1e;font-size:12.5px;font-weight:700;padding:8px 16px;border-radius:8px;text-decoration:none}
 .sbtn{width:100%;margin-top:16px;padding:14px;background:#5b5bd6;color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
 .sbtn:disabled{background:#a9a9d0}
@@ -103,6 +105,10 @@ textarea.in{height:84px;resize:none;line-height:1.5}
       <input class="in" id="a-name" placeholder="가입 시 이름">
       <label>연락처</label>
       <input class="in" id="a-phone" type="tel" placeholder="01012345678">
+      <div class="apply-note">
+        ⚠️ 이 모임은 <b>전 회차 참석 조건</b>이에요. 모든 회차에 참석 가능한 경우에만 신청해 주세요.<br>
+        🔒 신청 시 입력하신 <b>이름·연락처가 모임 리더에게 전달</b>돼요.
+      </div>
       <div class="errbox" id="a-err"></div>
       <button class="sbtn" id="a-btn" onclick="submitApply()">신청하기</button>
     </div>
