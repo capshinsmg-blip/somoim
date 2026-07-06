@@ -210,7 +210,7 @@ function submitEventApplication(data) {
   const existing = sheet.getDataRange().getValues();
   const isDup = existing.slice(1).some(row => String(row[1]) === data.eventName && normalizePhone_(row[3]) === normalizePhone_(data.phone));
   if (isDup) return { success: false, message: 'already' };
-  sheet.appendRow([Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm'), data.eventName, data.name, data.phone, '대기중']);
+  sheet.appendRow([Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm'), data.eventName, data.name, normalizePhone_(data.phone), '대기중']);
   return { success: true };
 }
 
@@ -221,7 +221,7 @@ function getEventApplicants(eventName) {
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
   return data.slice(1)
-    .map((row, i) => ({ id: i + 2, eventName: String(row[1]||''), name: String(row[2]||''), phone: String(row[3]||''), status: String(row[4]||'대기중') }))
+    .map((row, i) => ({ id: i + 2, eventName: String(row[1]||''), name: String(row[2]||''), phone: normalizePhone_(String(row[3]||'')), status: String(row[4]||'대기중') }))
     .filter(r => r.eventName === eventName);
 }
 
@@ -231,7 +231,7 @@ function getAllApplicants() {
   if (!sheet) return [];
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
-  return data.slice(1).map((row, i) => ({ id: i + 2, eventName: String(row[1]||''), name: String(row[2]||''), phone: String(row[3]||''), status: String(row[4]||'대기중') }));
+  return data.slice(1).map((row, i) => ({ id: i + 2, eventName: String(row[1]||''), name: String(row[2]||''), phone: normalizePhone_(String(row[3]||'')), status: String(row[4]||'대기중') }));
 }
 
 function updateApplicantStatus(rowId, status) {
@@ -622,7 +622,7 @@ function updateMember(rowId, data) {
   const sheet = getSheet('회원목록');
   const oldName = String(sheet.getRange(rowId, 1).getValue() || '');
   sheet.getRange(rowId, 1, 1, 8).setValues([[
-    data.name, data.age, data.gender, data.phone,
+    data.name, data.age, data.gender, normalizePhone_(data.phone),
     data.location, data.hobby, data.joinDate, data.status
   ]]);
   let synced = 0;
@@ -645,7 +645,7 @@ function toggleMemberFlag(rowId, flag) {
 function addMember(data) {
   requireAuth_();
   getSheet('회원목록').appendRow([
-    data.name, data.age, data.gender, data.phone,
+    data.name, data.age, data.gender, normalizePhone_(data.phone),
     data.location, data.hobby,
     Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd'),
     '활성'
@@ -1020,7 +1020,7 @@ function getLeaderApps() {
     id: i + 2,
     timestamp: String(row[0] || ''),
     name: String(row[1] || ''),
-    phone: String(row[2] || ''),
+    phone: normalizePhone_(String(row[2] || '')),
     eventName: String(row[3] || ''),
     category: String(row[4] || ''),
     date1: fmtGasDate_(row[5]),
