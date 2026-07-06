@@ -279,7 +279,7 @@ select.form-input{cursor:pointer}
       <div class="section-header">
         <div class="section-title">📅 모임 목록</div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary" onclick="copyBoardLink()">🌐 공개 보드 링크</button>
+          <button class="btn btn-secondary" onclick="copyBoardLink()">🌐 홈페이지 링크</button>
           <button class="btn btn-primary" onclick="openModal('addEvent')">+ 모임 등록</button>
         </div>
       </div>
@@ -1073,18 +1073,10 @@ function copyRemindText(btn) {
 }
 
 // ===== 신청자 배치 =====
+const HOMEPAGE_URL = 'https://capshinsmg-blip.github.io/somoim/';
+
 function copyBoardLink() {
-  if(!webAppUrl){ toast('잠시 후 다시 시도해주세요'); initWebAppUrl(); return; }
-  const url = webAppUrl + '?page=board';
-  toast('링크 단축 중...');
-  google.script.run
-    .withSuccessHandler(short=>{
-      navigator.clipboard.writeText(short).then(()=>toast('공개 보드 링크 복사됨 🌐'));
-    })
-    .withFailureHandler(()=>{
-      navigator.clipboard.writeText(url).then(()=>toast('공개 보드 링크 복사됨 🌐'));
-    })
-    .getShortUrl(url);
+  navigator.clipboard.writeText(HOMEPAGE_URL).then(()=>toast('홈페이지 링크 복사됨 🌐 (로그인 불필요)'));
 }
 
 function copyApplyLink(eventName) {

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2030 안산 소모임</title>
+<meta name="description" content="안산 2030 청년들의 취미·친목 모임 플랫폼. 모집중인 모임을 보고 바로 신청하세요!">
+<meta property="og:title" content="2030 안산 소모임 🏠">
+<meta property="og:description" content="안산 2030 청년들의 취미·친목 모임 — 모집중인 모임 보고 바로 신청하세요!">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://capshinsmg-blip.github.io/somoim/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;background:#f2f2f8;color:#222;padding-bottom:90px}
+.hero{background:linear-gradient(135deg,#5b5bd6 0%,#8b7cf6 100%);padding:30px 20px 26px;color:#fff}
+.hero-in{max-width:560px;margin:0 auto}
+.hero .hb{display:inline-block;background:rgba(255,255,255,.2);font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:10px;letter-spacing:.5px}
+.hero h1{font-size:24px;font-weight:800}
+.hero p{font-size:13px;opacity:.85;margin-top:6px;line-height:1.5}
+.wrap{max-width:560px;margin:0 auto;padding:18px 16px 0}
+.sec{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;margin:6px 0 12px}
+.sec .n{background:#ede9ff;color:#5b5bd6;font-size:12px;font-weight:700;padding:2px 9px;border-radius:12px}
+.ecard{background:#fff;border-radius:16px;padding:18px;margin-bottom:12px;box-shadow:0 2px 12px rgba(91,91,214,.07)}
+.ec-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.pill{background:#d3f9d8;color:#2f9e44;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.pill.pfull{background:#f1f1f5;color:#999}
+.ec-cap{font-size:12px;color:#888;font-weight:600}
+.ec-name{font-size:17px;font-weight:700;margin-bottom:8px}
+.ec-meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:#666;margin-bottom:14px;line-height:1.6}
+.ec-btn{width:100%;padding:12px;background:#5b5bd6;color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.ec-btn:active{background:#4949c4}
+.ec-btn.dis{background:#e3e3ea;color:#999;cursor:default}
+.nores{background:#fff;border-radius:16px;padding:44px 20px;text-align:center;color:#888;font-size:13.5px;line-height:1.7}
+.skel{background:#fff;border-radius:16px;padding:18px;margin-bottom:12px}
+.sk{background:linear-gradient(90deg,#f0f0f5 25%,#e8e8f0 50%,#f0f0f5 75%);background-size:200% 100%;animation:shine 1.2s infinite;border-radius:6px}
+@keyframes shine{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.leader-cta{display:flex;align-items:center;gap:12px;background:#fff;border:1.5px dashed #b9b0f0;border-radius:16px;padding:16px;margin-top:18px;cursor:pointer}
+.leader-cta .em{font-size:26px}
+.leader-cta b{font-size:14px;display:block;margin-bottom:2px}
+.leader-cta span{font-size:12px;color:#888}
+.leader-cta .ar{margin-left:auto;color:#b0b0c0;font-size:20px}
+.fab{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#FEE500;color:#3c1e1e;font-size:13.5px;font-weight:700;padding:12px 22px;border-radius:26px;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:50}
+.foot{max-width:560px;margin:22px auto 0;padding:0 16px;text-align:center;font-size:11.5px;color:#aaa;line-height:1.7}
+.ov{position:fixed;inset:0;background:rgba(20,20,40,.5);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.ov.open{display:flex}
+.sheet{background:#fff;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:14px 20px 30px;max-height:88vh;overflow-y:auto}
+.sh-grab{width:40px;height:4px;background:#e0e0e8;border-radius:2px;margin:0 auto 16px}
+.sh-title{font-size:17px;font-weight:800;margin-bottom:4px}
+.sh-event{font-size:13px;color:#5b5bd6;font-weight:700;margin-bottom:10px}
+label{display:block;font-size:12px;font-weight:600;color:#666;margin:12px 0 5px}
+.in{width:100%;padding:12px 14px;border:1.5px solid #e5e5ec;border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:#fff}
+.in:focus{border-color:#5b5bd6}
+textarea.in{height:84px;resize:none;line-height:1.5}
+.row2{display:flex;gap:8px}
+.row2>div{flex:1}
+.errbox{display:none;background:#fff5f5;border:1px solid #ffd6d6;color:#c92a2a;font-size:13px;border-radius:10px;padding:12px;margin-top:14px;text-align:center;line-height:1.6}
+.errbox.show{display:block}
+.kbtn{display:inline-block;margin-top:8px;background:#FEE500;color:#3c1e1e;font-size:12.5px;font-weight:700;padding:8px 16px;border-radius:8px;text-decoration:none}
+.sbtn{width:100%;margin-top:16px;padding:14px;background:#5b5bd6;color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.sbtn:disabled{background:#a9a9d0}
+.done{text-align:center;padding:16px 0 4px}
+.done-i{font-size:52px;margin-bottom:12px}
+.done-t{font-size:16px;font-weight:800;margin-bottom:6px}
+.done-s{font-size:13px;color:#888;margin-bottom:18px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-in">
+    <div class="hb">2030 안산</div>
+    <h1>소모임 🏠</h1>
+    <p>안산 2030 청년들의 취미·친목 모임 플랫폼<br>마음에 드는 모임에 바로 신청해보세요!</p>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="sec">🔥 모집중인 모임 <span class="n" id="ev-cnt">…</span></div>
+  <div id="list">
+    <div class="skel"><div class="sk" style="height:18px;width:60%;margin-bottom:10px"></div><div class="sk" style="height:12px;width:85%;margin-bottom:14px"></div><div class="sk" style="height:40px"></div></div>
+    <div class="skel"><div class="sk" style="height:18px;width:50%;margin-bottom:10px"></div><div class="sk" style="height:12px;width:75%;margin-bottom:14px"></div><div class="sk" style="height:40px"></div></div>
+  </div>
+  <div class="leader-cta" onclick="openLeader()">
+    <div class="em">💡</div>
+    <div><b>열고 싶은 모임이 있나요?</b><span>리더가 되어 직접 모임을 만들어보세요</span></div>
+    <div class="ar">›</div>
+  </div>
+</div>
+
+<div class="foot">신청은 가입 회원만 가능해요.<br>아직 회원이 아니라면 오픈채팅으로 문의해주세요 💬</div>
+
+<a class="fab" id="fab" href="https://open.kakao.com/o/ssuPwLBi" target="_blank" rel="noopener">💬 문의하기</a>
+
+<div class="ov" id="ov" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet">
+    <div class="sh-grab"></div>
+
+    <div id="f-apply" style="display:none">
+      <div class="sh-title">모임 신청</div>
+      <div class="sh-event" id="apply-event-name"></div>
+      <label>이름</label>
+      <input class="in" id="a-name" placeholder="가입 시 이름">
+      <label>연락처</label>
+      <input class="in" id="a-phone" type="tel" placeholder="01012345678">
+      <div class="errbox" id="a-err"></div>
+      <button class="sbtn" id="a-btn" onclick="submitApply()">신청하기</button>
+    </div>
+
+    <div id="f-leader" style="display:none">
+      <div class="sh-title">💡 리더로 모임 만들기</div>
+      <div class="sh-event">운영진 승인 후 모임이 오픈돼요</div>
+      <div class="row2">
+        <div><label>이름 *</label><input class="in" id="l-name" placeholder="가입 시 이름"></div>
+        <div><label>연락처 *</label><input class="in" id="l-phone" type="tel" placeholder="01012345678"></div>
+      </div>
+      <label>모임명 *</label>
+      <input class="in" id="l-ename" placeholder="예: 주말 보드게임 원정대">
+      <label>분야 *</label>
+      <input class="in" id="l-cat" placeholder="예: 운동, 보드게임, 맛집탐방">
+      <label>1회차 일시 *</label>
+      <input class="in" id="l-d1" type="datetime-local">
+      <div class="row2">
+        <div><label>2회차 (선택)</label><input class="in" id="l-d2" type="datetime-local"></div>
+        <div><label>3회차 (선택)</label><input class="in" id="l-d3" type="datetime-local"></div>
+      </div>
+      <div class="row2">
+        <div><label>장소 *</label><input class="in" id="l-loc" placeholder="예: 중앙동 OO카페"></div>
+        <div><label>최대 인원 *</label><input class="in" id="l-max" type="number" min="2" placeholder="8"></div>
+      </div>
+      <label>모임 소개 *</label>
+      <textarea class="in" id="l-intro" placeholder="어떤 모임인지 간단히 소개해주세요"></textarea>
+      <label>준비물 (선택)</label>
+      <input class="in" id="l-mat" placeholder="예: 운동화, 개인 물병">
+      <div class="errbox" id="l-err"></div>
+      <button class="sbtn" id="l-btn" onclick="submitLeader()">리더 신청하기</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbyLzhL2tJzHQQQT5O_fL5nhbOIzugDzozOCQClQIUewq8SKuJ7efG5oJomIi3BII1ch/exec';
+var KAKAO = 'https://open.kakao.com/o/ssuPwLBi';
+var curEvent = '';
+
+function esc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function loadEvents(){
+  fetch(API + '?api=events')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!d.success) throw new Error('api');
+      if(d.kakao){ KAKAO = d.kakao; document.getElementById('fab').href = d.kakao; }
+      renderEvents(d.events || []);
+    })
+    .catch(function(){
+      document.getElementById('ev-cnt').textContent = '!';
+      document.getElementById('list').innerHTML =
+        '<div class="nores"><div style="font-size:40px;margin-bottom:10px">📡</div>' +
+        '모임 목록을 불러오지 못했어요.<br><button class="sbtn" style="max-width:200px;margin-top:14px" onclick="retryLoad()">다시 시도</button></div>';
+    });
+}
+function retryLoad(){
+  document.getElementById('list').innerHTML =
+    '<div class="skel"><div class="sk" style="height:18px;width:60%;margin-bottom:10px"></div><div class="sk" style="height:12px;width:85%;margin-bottom:14px"></div><div class="sk" style="height:40px"></div></div>';
+  loadEvents();
+}
+
+function renderEvents(events){
+  document.getElementById('ev-cnt').textContent = events.length;
+  if(!events.length){
+    document.getElementById('list').innerHTML =
+      '<div class="nores"><div style="font-size:40px;margin-bottom:10px">🌱</div>지금은 모집중인 모임이 없어요.<br>곧 새로운 모임이 열릴 예정이에요!</div>';
+    return;
+  }
+  document.getElementById('list').innerHTML = events.map(function(e){
+    var full = e.max > 0 && e.count >= e.max;
+    var cap = e.max ? e.count + '/' + e.max + '명' : e.count + '명 참여';
+    return '<div class="ecard">' +
+      '<div class="ec-top">' +
+        '<span class="pill' + (full ? ' pfull' : '') + '">' + (full ? '정원마감' : '모집중') + '</span>' +
+        '<span class="ec-cap">👥 ' + esc(cap) + '</span>' +
+      '</div>' +
+      '<div class="ec-name">' + esc(e.name) + '</div>' +
+      '<div class="ec-meta">' +
+        '<span>📅 ' + esc(e.korDate || '-') + '</span>' +
+        '<span>📍 ' + esc(e.location || '-') + '</span>' +
+        (e.leader ? '<span>⭐ 리더 ' + esc(e.leader) + '</span>' : '') +
+      '</div>' +
+      (full
+        ? '<button class="ec-btn dis" disabled>정원이 가득 찼어요</button>'
+        : '<button class="ec-btn" onclick="openApply(this.dataset.ev)" data-ev="' + esc(e.name) + '">신청하기</button>') +
+    '</div>';
+  }).join('');
+}
+
+function openApply(name){
+  curEvent = name;
+  document.getElementById('apply-event-name').textContent = name;
+  document.getElementById('f-apply').style.display = 'block';
+  document.getElementById('f-leader').style.display = 'none';
+  prefill('a'); hideErr('a-err');
+  document.getElementById('ov').classList.add('open');
+}
+function openLeader(){
+  document.getElementById('f-apply').style.display = 'none';
+  document.getElementById('f-leader').style.display = 'block';
+  prefill('l'); hideErr('l-err');
+  document.getElementById('ov').classList.add('open');
+}
+function closeSheet(){ document.getElementById('ov').classList.remove('open'); }
+function prefill(p){
+  try{
+    var n = localStorage.getItem('sm_name'), ph = localStorage.getItem('sm_phone');
+    if(n && !document.getElementById(p+'-name').value) document.getElementById(p+'-name').value = n;
+    if(ph && !document.getElementById(p+'-phone').value) document.getElementById(p+'-phone').value = ph;
+  }catch(e){}
+}
+function saveMe(n,p){ try{ localStorage.setItem('sm_name',n); localStorage.setItem('sm_phone',p); }catch(e){} }
+function v(id){ return document.getElementById(id).value.trim(); }
+function hideErr(id){ var el = document.getElementById(id); el.classList.remove('show'); el.innerHTML = ''; }
+function showErr(id, code){ var el = document.getElementById(id); el.innerHTML = errHtml(code); el.classList.add('show'); }
+function errHtml(code){
+  if(code==='not_member') return '<b>등록된 회원이 아닙니다.</b><br>문의 부탁드립니다.<br><a class="kbtn" href="'+KAKAO+'" target="_blank" rel="noopener">💬 카카오톡 문의하기</a>';
+  if(code==='restricted') return '현재 모임 신청이 제한된 상태예요.<br><a class="kbtn" href="'+KAKAO+'" target="_blank" rel="noopener">💬 카카오톡 문의하기</a>';
+  if(code==='already') return '이미 이 모임에 신청하셨어요 😊';
+  if(code==='full') return '아쉽지만 정원이 가득 찼어요 😢';
+  if(code==='closed') return '이미 마감된 모임이에요.';
+  if(code==='missing') return '필수 항목을 모두 입력해주세요.';
+  return '오류가 발생했어요. 잠시 후 다시 시도해주세요.';
+}
+function showDone(boxId, title){
+  document.getElementById(boxId).innerHTML =
+    '<div class="done"><div class="done-i">🎉</div><div class="done-t">' + title + '</div>' +
+    '<div class="done-s">운영진 확인 후 오픈채팅으로 안내드릴게요.</div>' +
+    '<button class="sbtn" onclick="location.reload()">확인</button></div>';
+}
+function post(data){
+  return fetch(API, { method: 'POST', body: JSON.stringify(data) })
+    .then(function(r){ return r.json(); });
+}
+function submitApply(){
+  var n = v('a-name'), p = v('a-phone');
+  hideErr('a-err');
+  if(!n || !p){ showErr('a-err','missing'); return; }
+  var btn = document.getElementById('a-btn');
+  btn.disabled = true; btn.textContent = '신청 중...';
+  post({ action:'apply', eventName: curEvent, name: n, phone: p })
+    .then(function(r){
+      btn.disabled = false; btn.textContent = '신청하기';
+      if(r.success){ saveMe(n,p); showDone('f-apply','신청이 완료됐어요!'); }
+      else showErr('a-err', r.code);
+    })
+    .catch(function(){ btn.disabled = false; btn.textContent = '신청하기'; showErr('a-err','error'); });
+}
+function submitLeader(){
+  var d = { action:'leader', name:v('l-name'), phone:v('l-phone'), eventName:v('l-ename'), category:v('l-cat'),
+            date1:v('l-d1'), date2:v('l-d2'), date3:v('l-d3'),
+            location:v('l-loc'), maxMembers:v('l-max'), intro:v('l-intro'), materials:v('l-mat') };
+  hideErr('l-err');
+  if(!d.name||!d.phone||!d.eventName||!d.category||!d.date1||!d.location||!d.maxMembers||!d.intro){ showErr('l-err','missing'); return; }
+  var btn = document.getElementById('l-btn');
+  btn.disabled = true; btn.textContent = '제출 중...';
+  post(d)
+    .then(function(r){
+      btn.disabled = false; btn.textContent = '리더 신청하기';
+      if(r.success){ saveMe(d.name,d.phone); showDone('f-leader','리더 신청이 접수됐어요!'); }
+      else showErr('l-err', r.code);
+    })
+    .catch(function(){ btn.disabled = false; btn.textContent = '리더 신청하기'; showErr('l-err','error'); });
+}
+
+loadEvents();
+</script>
+</body>
+</html>

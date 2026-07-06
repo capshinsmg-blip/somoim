@@ -60,6 +60,25 @@ function getShortUrl(longUrl) {
 
 function doGet(e) {
   const params = e ? e.parameter : {};
+  // 공개 홈페이지용 JSON API — 모집중(승인된) 모임만 반환
+  if (params && params.api === 'events') {
+    const regs = getRegistrations_();
+    const events = getEvents_()
+      .filter(function(ev) { return ev.status === '모집중'; })
+      .map(function(ev) {
+        const cnt = regs.filter(function(r) { return r.eventName === ev.name; }).length;
+        return {
+          name: ev.name,
+          korDate: fmtKorDate_(ev.date),
+          location: ev.location,
+          leader: ev.leader,
+          max: ev.maxMembers ? Number(ev.maxMembers) : 0,
+          count: cnt
+        };
+      });
+    return ContentService.createTextOutput(JSON.stringify({ success: true, events: events, kakao: INQUIRY_KAKAO_URL }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   if (params && params.apply) {
     return HtmlService.createHtmlOutput(buildApplyPage(decodeURIComponent(params.apply)))
       .setTitle('모임 신청')
@@ -80,6 +99,21 @@ function doGet(e) {
 function getWebAppUrl() {
   requireAuth_();
   return ScriptApp.getService().getUrl();
+}
+
+// 공개 홈페이지에서 오는 신청 처리 (text/plain JSON body — CORS preflight 회피)
+function doPost(e) {
+  let out = { success: false, code: 'error' };
+  try {
+    const req = JSON.parse(e.postData.contents);
+    if (req.action === 'apply') out = submitBoardApplication(req);
+    else if (req.action === 'leader') out = submitBoardLeaderApp(req);
+    else out = { success: false, code: 'bad_action' };
+  } catch (err) {
+    out = { success: false, code: 'error' };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function buildApplyPage(eventName) {
