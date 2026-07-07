@@ -572,8 +572,15 @@ select.form-input{cursor:pointer}
     <div class="form-group"><label class="form-label">장소 설명 *</label><textarea class="form-input" id="e-loc" rows="2" placeholder="예: 안산천 러닝코스 성포동 입구 / 중앙역 2번출구 앞"></textarea></div>
     <div class="form-group">
       <label class="form-label">지도 위치 <span style="color:#aaa;font-weight:400">(선택)</span></label>
-      <input class="form-input" id="e-map" placeholder="장소명 + 카카오맵 링크 (예: 스타벅스 안산점 https://place.map.kakao.com/…)">
-      <div style="font-size:11px;color:#888;margin-top:4px"><a href="https://map.kakao.com" target="_blank" style="color:#5b5bd6;text-decoration:none">🔍 카카오맵에서 검색 →</a> 후 <b>장소명과 링크</b>를 함께 붙여넣으면 신청자 상세보기에 지도가 표시돼요</div>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="e-map" style="flex:1" placeholder="지도 검색으로 선택하세요">
+        <button type="button" class="btn btn-secondary" style="white-space:nowrap" onclick="toggleMapPicker('e-map','e-mapframe')">🗺️ 지도 검색</button>
+      </div>
+      <div id="e-mapframe-wrap" style="display:none;margin-top:8px">
+        <iframe id="e-mapframe" style="width:100%;height:420px;border:1px solid #e5e5ec;border-radius:10px" title="지도 검색"></iframe>
+        <div style="font-size:11px;color:#888;margin-top:4px">지도가 안 보이면 <a href="#" onclick="openMapPopup('e-map');return false" style="color:#5b5bd6">팝업으로 열기</a></div>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:4px">지도에서 검색해 선택하면 신청자 상세보기에 지도가 표시돼요 (직접 붙여넣기도 가능)</div>
     </div>
     <div class="form-group"><label class="form-label">리더</label><input class="form-input" id="e-leader" placeholder="홍길동"></div>
     <div class="form-group"><label class="form-label">모임 소개</label><textarea class="form-input" id="e-desc" rows="3" placeholder="어떤 모임인지 설명 (신청자 상세보기에 표시돼요)"></textarea></div>
@@ -597,8 +604,15 @@ select.form-input{cursor:pointer}
     <div class="form-group"><label class="form-label">장소 설명 *</label><textarea class="form-input" id="ee-loc" rows="2" placeholder="예: 안산천 러닝코스 성포동 입구 / 중앙역 2번출구 앞"></textarea></div>
     <div class="form-group">
       <label class="form-label">지도 위치 <span style="color:#aaa;font-weight:400">(선택)</span></label>
-      <input class="form-input" id="ee-map" placeholder="장소명 + 카카오맵 링크">
-      <div style="font-size:11px;color:#888;margin-top:4px"><a href="https://map.kakao.com" target="_blank" style="color:#5b5bd6;text-decoration:none">🔍 카카오맵에서 검색 →</a> 후 <b>장소명과 링크</b>를 함께 붙여넣으면 상세보기에 지도가 표시돼요</div>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="ee-map" style="flex:1" placeholder="지도 검색으로 선택하세요">
+        <button type="button" class="btn btn-secondary" style="white-space:nowrap" onclick="toggleMapPicker('ee-map','ee-mapframe')">🗺️ 지도 검색</button>
+      </div>
+      <div id="ee-mapframe-wrap" style="display:none;margin-top:8px">
+        <iframe id="ee-mapframe" style="width:100%;height:420px;border:1px solid #e5e5ec;border-radius:10px" title="지도 검색"></iframe>
+        <div style="font-size:11px;color:#888;margin-top:4px">지도가 안 보이면 <a href="#" onclick="openMapPopup('ee-map');return false" style="color:#5b5bd6">팝업으로 열기</a></div>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:4px">지도에서 검색해 선택하면 상세보기에 지도가 표시돼요 (직접 붙여넣기도 가능)</div>
     </div>
     <div class="form-group"><label class="form-label">최대 인원</label><input class="form-input" id="ee-max" type="number"></div>
     <div class="form-group"><label class="form-label">리더</label><input class="form-input" id="ee-leader"></div>
@@ -1501,6 +1515,41 @@ function composeLoc(desc, mapLine){
   if(mapLine) return desc ? (desc + '\n' + mapLine) : mapLine;
   return desc;
 }
+
+// 카카오 지도 검색 — GitHub Pages(등록 도메인) 페이지를 iframe으로 임베드해 인라인 표시
+var mapPickTarget = null;
+var MAP_PICKER_URL = 'https://capshinsmg-blip.github.io/somoim/mappicker.html';
+
+// 모달 안에서 지도 검색 iframe 접기/펼치기
+function toggleMapPicker(targetId, frameId){
+  mapPickTarget = targetId;
+  var wrap = document.getElementById(frameId + '-wrap');
+  var frame = document.getElementById(frameId);
+  if(wrap.style.display === 'none'){
+    if(!frame.getAttribute('src')) frame.setAttribute('src', MAP_PICKER_URL); // 최초 열 때만 로드
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+// 폴백: 임베드가 막힐 때 팝업으로
+function openMapPopup(targetId){
+  mapPickTarget = targetId;
+  var w = window.open(MAP_PICKER_URL, 'kakaoPicker', 'width=460,height=680');
+  if(!w){ toast('팝업이 차단됐어요. 팝업 허용 후 다시 시도해주세요'); }
+}
+// 팝업/iframe에서 선택한 장소 수신
+window.addEventListener('message', function(e){
+  if(e.origin !== 'https://capshinsmg-blip.github.io') return;
+  var d = e.data;
+  if(!d || d.type !== 'kakaoPlace' || !mapPickTarget) return;
+  var line = (d.place_name + (d.address ? ' ' + d.address : '') + (d.place_url ? ' ' + d.place_url : '')).trim();
+  var el = document.getElementById(mapPickTarget);
+  if(el){ el.value = line; toast('📍 ' + d.place_name + ' 선택됨 ✅'); }
+  var wrap = document.getElementById(mapPickTarget + 'frame-wrap'); // e-map → e-mapframe-wrap
+  if(wrap) wrap.style.display = 'none';
+  mapPickTarget = null;
+});
 
 function openEditEvent(id) {
   const e = E.find(x=>x.id===id); if(!e) return;

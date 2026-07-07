@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>장소 검색</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;background:#fff;color:#222;display:flex;flex-direction:column;height:100vh}
+.top{padding:14px 16px 10px;border-bottom:1px solid #eee}
+.top h1{font-size:15px;font-weight:800;margin-bottom:10px}
+.searchrow{display:flex;gap:8px}
+#q{flex:1;padding:11px 13px;border:1.5px solid #e5e5ec;border-radius:10px;font-size:14px;outline:none;font-family:inherit}
+#q:focus{border-color:#5b5bd6}
+.results{max-height:200px;overflow-y:auto;border-bottom:1px solid #eee}
+.item{padding:11px 16px;cursor:pointer;border-bottom:1px solid #f2f2f6}
+.item:last-child{border-bottom:none}
+.item:hover,.item.on{background:#f5f3ff}
+.item .p{font-size:14px;font-weight:600;color:#222}
+.item .c{font-size:11px;color:#5b5bd6;font-weight:600;margin-left:6px}
+.item .a{font-size:12px;color:#888;margin-top:2px}
+.empty{padding:16px;text-align:center;color:#aaa;font-size:13px}
+#map{flex:1;min-height:220px}
+.bar{padding:12px 16px;border-top:1px solid #eee;background:#fafafa;display:none}
+.bar.show{display:block}
+.bar .name{font-size:13px;font-weight:700;color:#333;margin-bottom:2px}
+.bar .addr{font-size:11.5px;color:#888;margin-bottom:10px}
+.bar button{width:100%;padding:13px;background:#5b5bd6;color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.bar button:active{background:#4949c4}
+.hint{padding:12px 16px;color:#aaa;font-size:12px;text-align:center}
+</style>
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=a036955b82c468791e2fff0ad47f5d75&libraries=services&autoload=false"></script>
+</head>
+<body>
+<div class="top">
+  <h1>📍 모임 장소 검색</h1>
+  <div class="searchrow">
+    <input id="q" placeholder="장소명·주소 검색 (예: 안산 스타벅스)" autocomplete="off">
+  </div>
+</div>
+<div class="results" id="results"></div>
+<div id="map"></div>
+<div class="hint" id="hint">검색해서 장소를 선택하면 지도에 표시돼요</div>
+<div class="bar" id="bar">
+  <div class="name" id="bname"></div>
+  <div class="addr" id="baddr"></div>
+  <button onclick="confirmPick()">✓ 이 위치로 선택</button>
+</div>
+
+<script>
+var svc = null, map = null, marker = null, results = [], picked = null;
+
+kakao.maps.load(function(){
+  var center = new kakao.maps.LatLng(37.3219, 126.8309); // 안산시청
+  map = new kakao.maps.Map(document.getElementById('map'), { center: center, level: 5 });
+  marker = new kakao.maps.Marker({ position: center });
+  svc = new kakao.maps.services.Places();
+  var q = document.getElementById('q');
+  var timer = null;
+  q.addEventListener('input', function(){
+    clearTimeout(timer);
+    var kw = q.value.trim();
+    if(kw.length < 2){ hideResults(); return; }
+    timer = setTimeout(function(){ doSearch(kw); }, 280);
+  });
+  q.focus();
+});
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function hideResults(){ document.getElementById('results').innerHTML = ''; }
+
+function doSearch(kw){
+  svc.keywordSearch(kw, function(data, status){
+    var box = document.getElementById('results');
+    if(status !== kakao.maps.services.Status.OK || !data.length){
+      box.innerHTML = '<div class="empty">검색 결과가 없어요</div>'; return;
+    }
+    results = data.slice(0, 10);
+    box.innerHTML = results.map(function(p, i){
+      var cat = p.category_group_name ? '<span class="c">' + esc(p.category_group_name) + '</span>' : '';
+      var addr = p.road_address_name || p.address_name || '';
+      return '<div class="item" onclick="pick(' + i + ')">' +
+               '<div class="p">' + esc(p.place_name) + cat + '</div>' +
+               (addr ? '<div class="a">' + esc(addr) + '</div>' : '') +
+             '</div>';
+    }).join('');
+  });
+}
+
+function pick(i){
+  var p = results[i]; if(!p) return;
+  picked = p;
+  var pos = new kakao.maps.LatLng(parseFloat(p.y), parseFloat(p.x));
+  map.setCenter(pos); map.setLevel(3);
+  marker.setPosition(pos); marker.setMap(map);
+  document.getElementById('hint').style.display = 'none';
+  document.getElementById('bname').textContent = p.place_name;
+  document.getElementById('baddr').textContent = p.road_address_name || p.address_name || '';
+  document.getElementById('bar').classList.add('show');
+}
+
+function confirmPick(){
+  if(!picked) return;
+  var payload = {
+    type: 'kakaoPlace',
+    place_name: picked.place_name,
+    address: picked.road_address_name || picked.address_name || '',
+    place_url: picked.place_url || '',
+    x: picked.x, y: picked.y
+  };
+  var target = window.opener || window.parent;
+  if(target){ target.postMessage(payload, '*'); }
+  if(window.opener){ window.close(); }   // 팝업일 때만 닫기 (iframe이면 부모가 접음)
+}
+</script>
+</body>
+</html>
