@@ -1609,6 +1609,7 @@ function composeLoc(desc, mapLine){
 
 // 카카오 지도 검색 — GitHub Pages(등록 도메인) 페이지를 iframe으로 임베드해 인라인 표시
 var mapPickTarget = null;
+var mapPickSeq = 0;
 var MAP_PICKER_URL = 'https://capshinsmg-blip.github.io/somoim/mappicker.html';
 
 // 모달 안에서 지도 검색 iframe 접기/펼치기
@@ -1616,12 +1617,21 @@ function toggleMapPicker(targetId, frameId){
   mapPickTarget = targetId;
   var wrap = document.getElementById(frameId + '-wrap');
   var frame = document.getElementById(frameId);
-  if(wrap.style.display === 'none'){
-    if(!frame.getAttribute('src')) frame.setAttribute('src', MAP_PICKER_URL); // 최초 열 때만 로드
+  if(wrap.style.display === 'none' || wrap.style.display === ''){
+    // 열 때마다 새로 로드 → 직전 모임에서 고른 위치·마커·검색 상태가 남지 않도록 초기화
+    frame.setAttribute('src', MAP_PICKER_URL + '?t=' + Date.now() + '_' + (++mapPickSeq));
     wrap.style.display = 'block';
   } else {
+    frame.removeAttribute('src');   // 접을 때 iframe 비워 상태 잔존 방지
     wrap.style.display = 'none';
   }
+}
+// 모달을 열 때 지도검색 패널을 접고 iframe을 비워 초기 상태로 되돌림
+function resetMapPicker(frameId){
+  var wrap = document.getElementById(frameId + '-wrap');
+  var frame = document.getElementById(frameId);
+  if(frame) frame.removeAttribute('src');
+  if(wrap) wrap.style.display = 'none';
 }
 // 폴백: 임베드가 막힐 때 팝업으로
 function openMapPopup(targetId){
@@ -1640,6 +1650,8 @@ window.addEventListener('message', function(e){
   if(el){ el.value = line; toast('📍 ' + d.place_name + ' 선택됨 ✅'); }
   var wrap = document.getElementById(mapPickTarget + 'frame-wrap'); // e-map → e-mapframe-wrap
   if(wrap) wrap.style.display = 'none';
+  var frame = document.getElementById(mapPickTarget + 'frame'); // e-map → e-mapframe
+  if(frame) frame.removeAttribute('src');   // 선택 후 iframe 비움 → 다음 열 때 새로 로드
   mapPickTarget = null;
 });
 
@@ -1656,6 +1668,7 @@ function openEditEvent(id) {
   document.getElementById('ee-max').value = e.maxMembers||'';
   document.getElementById('ee-leader').value = e.leader||'';
   document.getElementById('ee-desc').value = e.description||'';
+  resetMapPicker('ee-mapframe');   // 이전 수정에서 남은 지도검색 패널 초기화
   openModal('editEvent');
 }
 
@@ -1731,6 +1744,7 @@ function openModal(id) {
       E.filter(e=>e.status==='모집중').map(e=>`<option>${e.name}</option>`).join('');
     document.getElementById('dup-warn').style.display='none';
   }
+  if(id==='addEvent'){ resetMapPicker('e-mapframe'); }   // 지도검색 패널 초기 상태로
   document.getElementById('modal-'+id).classList.add('open');
 }
 function closeModal(id) {

@@ -1,5 +1,8 @@
 const http = require('http'), fs = require('fs'), path = require('path');
-const root = path.join(__dirname, '..', 'docs');
+// 루트 폴더와 포트를 argv로 받음 (기본: docs, 3100)
+const rootArg = process.argv[2] || 'docs';
+const port = parseInt(process.argv[3] || '3100', 10);
+const root = path.join(__dirname, '..', rootArg);
 http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p === '/') p = '/index.html';
@@ -11,4 +14,4 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': ct + '; charset=utf-8' });
     res.end(d);
   });
-}).listen(3100, () => console.log('serving docs on http://localhost:3100'));
+}).listen(port, () => console.log('serving ' + rootArg + ' on http://localhost:' + port));
