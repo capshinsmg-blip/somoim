@@ -1,35 +1,102 @@
 // 2030 안산 소모임 관리툴
 
+// 최초 관리자(시드) — '운영자' 시트가 없을 때 기본으로 넣어주는 계정. 시트에서 제거 불가.
 var ALLOWED_EMAILS = [
   'capshinsmg@gmail.com'
 ];
 
-// 신원확인 담당 운영자 목록 — 섭외 후 { email, name } 형식으로 추가
+// 신원확인 담당 운영자 시드 — 실제 운영자 목록은 '운영자' 시트에서 관리(추가/삭제)
 var OPERATORS = [
   { email: 'capshinsmg@gmail.com', name: '민규' }
 ];
 
 var INQUIRY_KAKAO_URL = 'https://open.kakao.com/o/ssuPwLBi';
 
-function checkAuth() {
-  var email = Session.getActiveUser().getEmail();
-  return {
-    email: email,
-    allowed: email !== '' && ALLOWED_EMAILS.indexOf(email) !== -1
-  };
+// ===== 운영자(로그인 권한 + 담당자) 관리 =====
+// 운영자 시트: 이메일(0) 이름(1) 추가일(2)
+function getOrCreateOperatorSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('운영자');
+  if (!sheet) {
+    sheet = ss.insertSheet('운영자');
+    var h = ['이메일', '이름', '추가일'];
+    var r = sheet.getRange(1, 1, 1, h.length);
+    r.setValues([h]); r.setFontWeight('bold'); r.setBackground('#5b5bd6'); r.setFontColor('white');
+    // 하드코딩된 시드 운영자를 최초 1회 채워넣음
+    OPERATORS.forEach(function(o) {
+      sheet.appendRow([o.email, o.name, Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd')]);
+    });
+  }
+  return sheet;
 }
 
-// 서버측 인증 가드 — 화이트리스트 외 호출 차단
+// 시트에서 운영자 목록 조회 (시트가 비었으면 시드 반환)
+function getOperators_() {
+  var sheet = getOrCreateOperatorSheet_();
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return OPERATORS.slice();
+  return data.slice(1)
+    .map(function(row) { return { email: String(row[0] || '').trim().toLowerCase(), name: String(row[1] || '').trim() }; })
+    .filter(function(o) { return o.email || o.name; });
+}
+
+// 로그인 허용 여부: 시드 계정 또는 운영자 시트에 등록된 이메일
+function isAllowed_(email) {
+  if (!email) return false;
+  email = String(email).trim().toLowerCase();
+  var seeded = ALLOWED_EMAILS.some(function(e) { return String(e).toLowerCase() === email; });
+  if (seeded) return true;
+  try {
+    return getOperators_().some(function(o) { return o.email === email; });
+  } catch (e) { return false; }
+}
+
+function checkAuth() {
+  var email = Session.getActiveUser().getEmail();
+  return { email: email, allowed: isAllowed_(email) };
+}
+
+// 서버측 인증 가드 — 허용되지 않은 호출 차단
 function requireAuth_() {
   var email = Session.getActiveUser().getEmail();
-  if (!email || ALLOWED_EMAILS.indexOf(email) === -1) {
+  if (!isAllowed_(email)) {
     throw new Error('접근 권한이 없습니다.');
   }
 }
 
 function getOperators() {
   requireAuth_();
-  return OPERATORS;
+  return getOperators_();
+}
+
+// 운영자 추가 — 구글 이메일 입력 시 로그인 권한 + 담당자 선택지 자동 부여
+function addOperator(email, name) {
+  requireAuth_();
+  email = String(email || '').trim().toLowerCase();
+  name = String(name || '').trim();
+  if (!email || email.indexOf('@') === -1) return { success: false, code: 'bad_email' };
+  if (!name) return { success: false, code: 'no_name' };
+  var sheet = getOrCreateOperatorSheet_();
+  var data = sheet.getDataRange().getValues();
+  var dup = data.slice(1).some(function(row) { return String(row[0] || '').trim().toLowerCase() === email; });
+  if (dup) return { success: false, code: 'dup' };
+  sheet.appendRow([email, name, Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd')]);
+  return { success: true, operators: getOperators_() };
+}
+
+// 운영자 제거 — 시드(하드코딩) 계정은 안전을 위해 제거 불가
+function removeOperator(email) {
+  requireAuth_();
+  email = String(email || '').trim().toLowerCase();
+  if (ALLOWED_EMAILS.some(function(e) { return String(e).toLowerCase() === email; })) {
+    return { success: false, code: 'protected' };
+  }
+  var sheet = getOrCreateOperatorSheet_();
+  var data = sheet.getDataRange().getValues();
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][0] || '').trim().toLowerCase() === email) sheet.deleteRow(i + 1);
+  }
+  return { success: true, operators: getOperators_() };
 }
 
 function fmtGasDate_(v) {
@@ -52,6 +119,22 @@ function fmtKorDate_(s) {
   }).join(' / ');
 }
 
+// 장소 문자열을 설명/지도핀으로 분리 (보드 포맷과 동일: "설명\n장소명 주소 URL")
+function parseLoc_(loc) {
+  loc = String(loc || '');
+  var m = loc.match(/(https?:\/\/[^\s)]+)/);
+  if (!m) return { desc: loc.trim(), mapName: '', mapUrl: '' };
+  var url = m[1];
+  var descLines = [], mapLine = '';
+  loc.split('\n').forEach(function(ln) {
+    if (ln.indexOf(url) >= 0) mapLine = ln; else descLines.push(ln);
+  });
+  var mapName = mapLine.replace(url, '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+  var desc = descLines.join('\n').trim();
+  if (!desc) desc = mapName;   // 구버전(설명 없이 장소만) 호환
+  return { desc: desc, mapName: mapName, mapUrl: url };
+}
+
 function getShortUrl(longUrl) {
   requireAuth_();
   try {
@@ -65,11 +148,10 @@ function doGet(e) {
   const params = e ? e.parameter : {};
   // 공개 홈페이지용 JSON API — 모집중(승인된) 모임만 반환
   if (params && params.api === 'events') {
-    const regs = getRegistrations_();
     const events = getEvents_()
       .filter(function(ev) { return ev.status === '모집중'; })
       .map(function(ev) {
-        const cnt = regs.filter(function(r) { return r.eventName === ev.name; }).length;
+        const cnt = countApproved_(ev.name);
         return {
           name: ev.name,
           korDate: fmtKorDate_(ev.date),
@@ -128,6 +210,10 @@ function buildApplyPage(eventName) {
   }
   const safe = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const js = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
+  const loc = parseLoc_(ev.location);
+  const locDescHtml = safe(loc.desc || '장소').replace(/\n/g, '<br>');
+  const descHtml = ev.description ? safe(ev.description).replace(/\n/g, '<br>') : '';
+  const KAKAO_JS_KEY = 'a036955b82c468791e2fff0ad47f5d75';
   return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -153,6 +239,10 @@ button:disabled{background:#aaa;cursor:not-allowed}
 .done-icon{font-size:56px;margin-bottom:14px}
 .done-title{font-size:18px;font-weight:700;color:#333;margin-bottom:8px}
 .done-sub{font-size:13px;color:#888;line-height:1.6}
+.maplink{color:#5b5bd6;text-decoration:none;font-weight:600;white-space:nowrap}
+#applymap{display:none;width:100%;height:180px;border-radius:12px;margin:0 0 18px;border:1px solid #e5e5e5;overflow:hidden}
+.dsec{font-size:12px;font-weight:700;color:#5b5bd6;margin:0 0 7px}
+.ddesc{font-size:13.5px;color:#333;line-height:1.7;white-space:pre-wrap;background:#f8f8fc;border-radius:12px;padding:13px;margin-bottom:20px}
 </style>
 </head>
 <body>
@@ -162,9 +252,11 @@ button:disabled{background:#aaa;cursor:not-allowed}
     <h1>${safe(ev.name)}</h1>
     <div class="info">
       <div class="info-row"><span>📅</span><span>${fmtKorDate_(ev.date)}</span></div>
-      <div class="info-row"><span>📍</span><span>${safe(ev.location)}</span></div>
-      <div class="info-row"><span>👤</span><span>리더: ${safe(ev.leader)}</span></div>
+      <div class="info-row"><span>📍</span><span>${locDescHtml}${loc.mapUrl ? ' <a class="maplink" href="' + safe(loc.mapUrl) + '" target="_blank" rel="noopener">🗺️ 지도</a>' : ''}</span></div>
+      ${ev.leader ? '<div class="info-row"><span>👤</span><span>리더: ' + safe(ev.leader) + '</span></div>' : ''}
     </div>
+    <div id="applymap"></div>
+    ${descHtml ? '<div class="dsec">📝 모임 소개</div><div class="ddesc">' + descHtml + '</div>' : ''}
     <label>이름 *</label>
     <input id="nm" type="text" placeholder="홍길동" maxlength="20">
     <label>연락처 *</label>
@@ -196,6 +288,30 @@ function go(){
     .withFailureHandler(function(){er.textContent='오류가 발생했어요. 다시 시도해주세요.';er.style.display='block';btn.disabled=false;btn.textContent='신청하기';})
     .submitEventApplication({eventName:'${js(ev.name)}',name:n,phone:p});
 }
+// 지도핀이 있는 모임만 카카오 지도 인라인 표시 (SDK 도메인 미등록 시 링크로 대체)
+var MAP_Q = '${js(loc.mapName || '')}';
+var MAP_KEY = '${KAKAO_JS_KEY}';
+if(MAP_Q && MAP_KEY){
+  var ks=document.createElement('script');
+  ks.src='https://dapi.kakao.com/v2/maps/sdk.js?appkey='+MAP_KEY+'&libraries=services&autoload=false';
+  ks.onload=function(){
+    if(!window.kakao||!kakao.maps) return;
+    kakao.maps.load(function(){
+      var svc=new kakao.maps.services.Places();
+      svc.keywordSearch(MAP_Q, function(data,status){
+        if(status!==kakao.maps.services.Status.OK||!data.length) return;
+        var p=data[0], lat=parseFloat(p.y), lng=parseFloat(p.x);
+        if(!lat||!lng) return;
+        var el=document.getElementById('applymap'); el.style.display='block';
+        var pos=new kakao.maps.LatLng(lat,lng);
+        var map=new kakao.maps.Map(el,{center:pos,level:3});
+        new kakao.maps.Marker({position:pos,map:map});
+        setTimeout(function(){ map.relayout(); map.setCenter(pos); },0);
+      });
+    });
+  };
+  document.head.appendChild(ks);
+}
 </script>
 </body>
 </html>`;
@@ -212,7 +328,11 @@ function submitEventApplication(data) {
     r.setValues([h]); r.setFontWeight('bold'); r.setBackground('#5b5bd6'); r.setFontColor('white');
   }
   const existing = sheet.getDataRange().getValues();
-  const isDup = existing.slice(1).some(row => String(row[1]) === data.eventName && normalizePhone_(row[3]) === normalizePhone_(data.phone));
+  // 취소·거절된 이전 신청은 무시 → 실수로 취소돼도 다시 신청 가능
+  const isDup = existing.slice(1).some(row =>
+    String(row[1]) === data.eventName &&
+    normalizePhone_(row[3]) === normalizePhone_(data.phone) &&
+    ['취소', '거절'].indexOf(String(row[4])) === -1);
   if (isDup) return { success: false, message: 'already' };
   sheet.appendRow([Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm'), data.eventName, data.name, normalizePhone_(data.phone), '대기중']);
   return { success: true };
@@ -263,7 +383,7 @@ function submitBoardApplication(data) {
   const ev = getEvents_().find(function(e) { return e.name === data.eventName; });
   if (!ev || ev.status !== '모집중') return { success: false, code: 'closed' };
   if (ev.maxMembers && Number(ev.maxMembers) > 0) {
-    const cnt = getRegistrations_().filter(function(r) { return r.eventName === ev.name; }).length;
+    const cnt = countApproved_(ev.name);
     if (cnt >= Number(ev.maxMembers)) return { success: false, code: 'full' };
   }
   const res = submitEventApplication({ eventName: data.eventName, name: v.member.name, phone: v.member.phone });
@@ -291,11 +411,10 @@ function submitBoardLeaderApp(data) {
 function buildBoardPage() {
   const safe = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const js = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
-  const regs = getRegistrations_();
   const events = getEvents_().filter(e => e.status === '모집중');
 
   const cardsHtml = events.length ? events.map(e => {
-    const cnt = regs.filter(r => r.eventName === e.name).length;
+    const cnt = countApproved_(e.name);
     const max = e.maxMembers ? Number(e.maxMembers) : 0;
     const full = max > 0 && cnt >= max;
     const cap = max ? cnt + '/' + max + '명' : cnt + '명 참여';
@@ -782,6 +901,31 @@ function getRegistrations_() {
   }));
 }
 
+// 승인된 참여 인원 수 — 모임신청대기 '승인' + 신청현황(확정 등록), 이름 기준 중복 제거
+// (홈페이지 'N명 참여중' 표시와 정원마감 판정에 공통 사용)
+function countApproved_(eventName) {
+  var seen = {};
+  var waitSheet = getSheet('모임신청대기');
+  if (waitSheet) {
+    var wd = waitSheet.getDataRange().getValues();
+    for (var i = 1; i < wd.length; i++) {
+      if (String(wd[i][1]) === eventName && String(wd[i][4]) === '승인') {
+        seen[String(wd[i][2]).replace(/\s/g, '')] = true;
+      }
+    }
+  }
+  var regSheet = getSheet('신청현황');
+  if (regSheet) {
+    var rd = regSheet.getDataRange().getValues();
+    for (var j = 1; j < rd.length; j++) {
+      if (String(rd[j][1]) === eventName) {
+        seen[String(rd[j][0]).replace(/\s/g, '')] = true;
+      }
+    }
+  }
+  return Object.keys(seen).length;
+}
+
 function addRegistration(data) {
   requireAuth_();
   const isDuplicate = checkDuplicate(data.memberName);
@@ -901,7 +1045,7 @@ function autoAssignApps() {
   if (!sheet) return { success: false, count: 0 };
   ensureAppExtraCols_(sheet);
   const data = sheet.getDataRange().getValues();
-  const names = OPERATORS.map(function(o) { return o.name; });
+  const names = getOperators_().map(function(o) { return o.name; });
   if (!names.length) return { success: false, count: 0 };
   // 기존 배정 건수를 세서 적게 가진 운영자부터 이어서 분배
   const counts = {};
