@@ -80,6 +80,7 @@ textarea.in{height:84px;resize:none;line-height:1.5}
 .loc-chosen.show{display:flex}
 .loc-chosen a{margin-left:auto;color:#5b5bd6;text-decoration:none;font-weight:700}
 .ec-map{color:#5b5bd6;text-decoration:none;font-weight:600;white-space:nowrap}
+.loc-map{display:none;width:100%;height:190px;border-radius:12px;margin-top:10px;border:1px solid #e5e5ec;overflow:hidden}
 </style>
 </head>
 <body>
@@ -154,8 +155,9 @@ textarea.in{height:84px;resize:none;line-height:1.5}
       <div class="loc-hint" id="loc-hint"></div>
       <div class="loc-chosen" id="loc-chosen">
         <span>📍 <span id="loc-chosen-name"></span></span>
-        <a href="#" id="loc-chosen-link" target="_blank" rel="noopener">🗺️ 지도</a>
+        <a href="#" id="loc-chosen-link" target="_blank" rel="noopener">🗺️ 큰지도</a>
       </div>
+      <div class="loc-map" id="loc-map"></div>
       <label>최대 인원 *</label>
       <input class="in" id="l-max" type="number" min="2" placeholder="8">
       <label>모임 소개 *</label>
@@ -314,6 +316,26 @@ function submitLeader(){
 
 // ===== 장소(카카오맵 장소검색) =====
 var locData = [];
+var locMapObj = null, locMarker = null;
+
+// 선택한 장소를 지도에 마커로 표시
+function showLocMap(p){
+  if(!p || !window.kakao || !kakao.maps) return;
+  var lat = parseFloat(p.y), lng = parseFloat(p.x);
+  if(!lat || !lng) return;
+  var el = document.getElementById('loc-map');
+  el.style.display = 'block';
+  var pos = new kakao.maps.LatLng(lat, lng);
+  if(!locMapObj){
+    locMapObj = new kakao.maps.Map(el, { center: pos, level: 3 });
+    locMarker = new kakao.maps.Marker({ position: pos });
+    locMarker.setMap(locMapObj);
+  } else {
+    locMarker.setPosition(pos);
+  }
+  // 숨김→표시로 바뀐 컨테이너는 relayout 후 중심 재설정 필요
+  setTimeout(function(){ locMapObj.relayout(); locMapObj.setCenter(pos); }, 0);
+}
 
 // 카드에 표시되는 장소 문자열에서 URL을 찾아 '🗺️ 지도' 링크로 변환
 function locHtml(loc){
@@ -347,6 +369,7 @@ function initKakao(){
 function clearChosen(){
   document.getElementById('l-loc-url').value = '';
   document.getElementById('loc-chosen').classList.remove('show');
+  var mp = document.getElementById('loc-map'); if(mp) mp.style.display = 'none';
 }
 function hideLocResults(){ var b = document.getElementById('loc-results'); if(b) b.classList.remove('show'); }
 
@@ -391,6 +414,7 @@ function pickPlace(i){
   var link = document.getElementById('loc-chosen-link');
   if(p.place_url){ link.href = p.place_url; link.style.display = ''; } else { link.style.display = 'none'; }
   document.getElementById('loc-chosen').classList.add('show');
+  showLocMap(p);
 }
 
 document.addEventListener('click', function(e){
