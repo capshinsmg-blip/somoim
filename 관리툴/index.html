@@ -1035,24 +1035,10 @@ function doLeaderApprove() {
 }
 
 function openAnnounceModal(app) {
-  document.getElementById('announce-text').value = buildAnnouncement(app, '(링크 단축 중...)');
-  document.getElementById('announce-link-status').textContent = '🔗 링크 단축 중...';
+  document.getElementById('announce-text').value = buildAnnouncement(app);
+  document.getElementById('announce-link-status').textContent = '';
   document.getElementById('modal-announce').dataset.app = JSON.stringify(app);
   openModal('announce');
-  if(!webAppUrl) { initWebAppUrl(); }
-  const applyUrl = (webAppUrl||'') + '?apply=' + encodeURIComponent(app.eventName||'');
-  google.script.run
-    .withSuccessHandler(short => {
-      const a = JSON.parse(document.getElementById('modal-announce').dataset.app||'{}');
-      document.getElementById('announce-text').value = buildAnnouncement(a, short);
-      document.getElementById('announce-link-status').textContent = '✅ 단축 링크 삽입됨';
-    })
-    .withFailureHandler(() => {
-      const a = JSON.parse(document.getElementById('modal-announce').dataset.app||'{}');
-      document.getElementById('announce-text').value = buildAnnouncement(a, applyUrl);
-      document.getElementById('announce-link-status').textContent = '';
-    })
-    .getShortUrl(applyUrl);
 }
 
 function openEventAnnounce(eventId) {
@@ -1072,7 +1058,7 @@ function openEventAnnounce(eventId) {
   });
 }
 
-function buildAnnouncement(app, applyLink) {
+function buildAnnouncement(app) {
   const dates = [app.date1, app.date2, app.date3].filter(d => d && d.trim());
   let dateBlock;
   if(dates.length === 1){
@@ -1084,26 +1070,23 @@ function buildAnnouncement(app, applyLink) {
     ? `\n🎒 준비물: ${app.supplies}` : '';
   const categoryLine = (app.category && app.category !== '-') ? `\n📂 분야: ${app.category}` : '';
   const descSection = app.description ? `━━━━━━━━━━━━━━\n📝 모임 소개\n${app.description}${suppliesLine}\n` : '';
-  const urlLine = applyLink
-    ? `🔗 신청 링크: ${applyLink}`
-    : `🔗 신청 링크: (생성 중...)`;
   return `📣 [모임 공지]
 
 ✨ ${app.eventName}${categoryLine}
 ━━━━━━━━━━━━━━
 ${dateBlock}
 
-📍 장소: ${app.place}
+📍 장소: ${firstLocLine(app.place)}
 👥 최대 인원: ${app.maxSize}
 👤 리더: ${app.name}
 ━━━━━━━━━━━━━━
-${descSection}${urlLine}`;
+${descSection}🔗 신청 페이지 👉 ${HOMEPAGE_URL}
+위 페이지에서 '${app.eventName}'을(를) 찾아 신청해주세요 😊`;
 }
 
 function copyAnnouncement() {
   const text = document.getElementById('announce-text').value;
   if(!text) return;
-  if(text.includes('링크 단축 중')) { toast('잠시 후 다시 시도해주세요'); return; }
   navigator.clipboard.writeText(text).then(()=>toast('공지문이 복사됐어요 📋'));
 }
 
@@ -1138,7 +1121,7 @@ function buildRemindMessages(app) {
 ✨ ${name}이(가) 내일이에요!
 
 📅 일시: ${fmtKorDate(dateStr)}
-📍 장소: ${app.place}
+📍 장소: ${firstLocLine(app.place)}
 👤 리더: ${app.name}
 ${sup}
 오늘 푹 쉬시고 내일 뵐게요 😊
@@ -1148,7 +1131,7 @@ ${sup}
 ✨ ${name} D-DAY 🎉
 
 📅 오늘 ${time}
-📍 ${app.place}
+📍 ${firstLocLine(app.place)}
 👤 리더: ${app.name}
 ${sup}
 건강하게 오늘 만나요! 💪
