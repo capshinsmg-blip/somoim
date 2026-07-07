@@ -569,7 +569,12 @@ select.form-input{cursor:pointer}
       <div class="form-group"><label class="form-label">날짜 *</label><input class="form-input" id="e-date" type="date"></div>
       <div class="form-group"><label class="form-label">최대 인원</label><input class="form-input" id="e-max" type="number" placeholder="10"></div>
     </div>
-    <div class="form-group"><label class="form-label">장소 *</label><input class="form-input" id="e-loc" placeholder="안산 중앙역 근처"></div>
+    <div class="form-group"><label class="form-label">장소 설명 *</label><textarea class="form-input" id="e-loc" rows="2" placeholder="예: 안산천 러닝코스 성포동 입구 / 중앙역 2번출구 앞"></textarea></div>
+    <div class="form-group">
+      <label class="form-label">지도 위치 <span style="color:#aaa;font-weight:400">(선택)</span></label>
+      <input class="form-input" id="e-map" placeholder="장소명 + 카카오맵 링크 (예: 스타벅스 안산점 https://place.map.kakao.com/…)">
+      <div style="font-size:11px;color:#888;margin-top:4px"><a href="https://map.kakao.com" target="_blank" style="color:#5b5bd6;text-decoration:none">🔍 카카오맵에서 검색 →</a> 후 <b>장소명과 링크</b>를 함께 붙여넣으면 신청자 상세보기에 지도가 표시돼요</div>
+    </div>
     <div class="form-group"><label class="form-label">리더</label><input class="form-input" id="e-leader" placeholder="홍길동"></div>
     <div class="form-group"><label class="form-label">모임 소개</label><textarea class="form-input" id="e-desc" rows="3" placeholder="어떤 모임인지 설명 (신청자 상세보기에 표시돼요)"></textarea></div>
     <div class="modal-footer">
@@ -589,10 +594,13 @@ select.form-input{cursor:pointer}
       <div class="form-group"><label class="form-label">날짜 *</label><input class="form-input" id="ee-date" type="date"></div>
       <div class="form-group"><label class="form-label">시간</label><input class="form-input" id="ee-time" type="time"></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">장소 *</label><input class="form-input" id="ee-loc"></div>
-      <div class="form-group"><label class="form-label">최대 인원</label><input class="form-input" id="ee-max" type="number"></div>
+    <div class="form-group"><label class="form-label">장소 설명 *</label><textarea class="form-input" id="ee-loc" rows="2" placeholder="예: 안산천 러닝코스 성포동 입구 / 중앙역 2번출구 앞"></textarea></div>
+    <div class="form-group">
+      <label class="form-label">지도 위치 <span style="color:#aaa;font-weight:400">(선택)</span></label>
+      <input class="form-input" id="ee-map" placeholder="장소명 + 카카오맵 링크">
+      <div style="font-size:11px;color:#888;margin-top:4px"><a href="https://map.kakao.com" target="_blank" style="color:#5b5bd6;text-decoration:none">🔍 카카오맵에서 검색 →</a> 후 <b>장소명과 링크</b>를 함께 붙여넣으면 상세보기에 지도가 표시돼요</div>
     </div>
+    <div class="form-group"><label class="form-label">최대 인원</label><input class="form-input" id="ee-max" type="number"></div>
     <div class="form-group"><label class="form-label">리더</label><input class="form-input" id="ee-leader"></div>
     <div class="form-group"><label class="form-label">모임 소개</label><textarea class="form-input" id="ee-desc" rows="3" placeholder="어떤 모임인지 설명 (신청자 상세보기에 표시돼요)"></textarea></div>
     <div class="modal-footer">
@@ -1476,6 +1484,24 @@ function renderRegs() {
     </tr>`).join('');
 }
 
+// 장소 문자열을 설명/지도라인으로 분리 (보드 포맷과 동일: "설명\n장소명 주소 URL")
+function parseLocAdmin(loc){
+  loc = String(loc||'');
+  const m = loc.match(/(https?:\/\/[^\s)]+)/);
+  if(!m) return { desc: loc.trim(), mapLine: '' };   // 설명만
+  const url = m[1];
+  const descLines = [], lines = loc.split('\n');
+  let mapLine = '';
+  lines.forEach(function(ln){ if(ln.indexOf(url)>=0) mapLine = ln.trim(); else descLines.push(ln); });
+  return { desc: descLines.join('\n').trim(), mapLine: mapLine };
+}
+// 설명 + 지도라인 → 저장용 location 문자열
+function composeLoc(desc, mapLine){
+  desc = (desc||'').trim(); mapLine = (mapLine||'').trim();
+  if(mapLine) return desc ? (desc + '\n' + mapLine) : mapLine;
+  return desc;
+}
+
 function openEditEvent(id) {
   const e = E.find(x=>x.id===id); if(!e) return;
   document.getElementById('ee-rowId').value = id;
@@ -1483,7 +1509,9 @@ function openEditEvent(id) {
   const m = String(e.date||'').match(/^(\d{4}-\d{2}-\d{2})(?:[T\s](\d{2}:\d{2}))?/);
   document.getElementById('ee-date').value = m ? m[1] : '';
   document.getElementById('ee-time').value = (m && m[2]) ? m[2] : '';
-  document.getElementById('ee-loc').value = e.location||'';
+  const pl = parseLocAdmin(e.location);
+  document.getElementById('ee-loc').value = pl.desc;
+  document.getElementById('ee-map').value = pl.mapLine;
   document.getElementById('ee-max').value = e.maxMembers||'';
   document.getElementById('ee-leader').value = e.leader||'';
   document.getElementById('ee-desc').value = e.description||'';
@@ -1497,7 +1525,7 @@ function saveEventEdit() {
   const d = {
     name: document.getElementById('ee-name').value.trim(),
     date: time ? date+' '+time : date,
-    location: document.getElementById('ee-loc').value.trim(),
+    location: composeLoc(document.getElementById('ee-loc').value, document.getElementById('ee-map').value),
     maxMembers: document.getElementById('ee-max').value,
     leader: document.getElementById('ee-leader').value.trim(),
     description: document.getElementById('ee-desc').value.trim()
@@ -1576,7 +1604,7 @@ function submitMember() {
 }
 
 function submitEvent() {
-  const d={name:$('e-name'),date:$('e-date'),location:$('e-loc'),maxMembers:$('e-max'),leader:$('e-leader'),description:$('e-desc')};
+  const d={name:$('e-name'),date:$('e-date'),location:composeLoc($('e-loc'),$('e-map')),maxMembers:$('e-max'),leader:$('e-leader'),description:$('e-desc')};
   if(!d.name||!d.date||!d.location){toast('필수 항목을 입력해주세요');return;}
   google.script.run.withSuccessHandler(()=>{closeModal('addEvent');loadEventsTab();toast('모임이 등록됐어요 ✅');}).addEvent(d);
 }
