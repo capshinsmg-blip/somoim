@@ -571,6 +571,7 @@ select.form-input{cursor:pointer}
     </div>
     <div class="form-group"><label class="form-label">장소 *</label><input class="form-input" id="e-loc" placeholder="안산 중앙역 근처"></div>
     <div class="form-group"><label class="form-label">리더</label><input class="form-input" id="e-leader" placeholder="홍길동"></div>
+    <div class="form-group"><label class="form-label">모임 소개</label><textarea class="form-input" id="e-desc" rows="3" placeholder="어떤 모임인지 설명 (신청자 상세보기에 표시돼요)"></textarea></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('addEvent')">취소</button>
       <button class="btn btn-primary" onclick="submitEvent()">등록</button>
@@ -593,6 +594,7 @@ select.form-input{cursor:pointer}
       <div class="form-group"><label class="form-label">최대 인원</label><input class="form-input" id="ee-max" type="number"></div>
     </div>
     <div class="form-group"><label class="form-label">리더</label><input class="form-input" id="ee-leader"></div>
+    <div class="form-group"><label class="form-label">모임 소개</label><textarea class="form-input" id="ee-desc" rows="3" placeholder="어떤 모임인지 설명 (신청자 상세보기에 표시돼요)"></textarea></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('editEvent')">취소</button>
       <button class="btn btn-primary" onclick="saveEventEdit()">저장</button>
@@ -1484,6 +1486,7 @@ function openEditEvent(id) {
   document.getElementById('ee-loc').value = e.location||'';
   document.getElementById('ee-max').value = e.maxMembers||'';
   document.getElementById('ee-leader').value = e.leader||'';
+  document.getElementById('ee-desc').value = e.description||'';
   openModal('editEvent');
 }
 
@@ -1496,7 +1499,8 @@ function saveEventEdit() {
     date: time ? date+' '+time : date,
     location: document.getElementById('ee-loc').value.trim(),
     maxMembers: document.getElementById('ee-max').value,
-    leader: document.getElementById('ee-leader').value.trim()
+    leader: document.getElementById('ee-leader').value.trim(),
+    description: document.getElementById('ee-desc').value.trim()
   };
   if(!d.name||!date||!d.location){ toast('필수 항목을 입력해주세요'); return; }
   const btn = document.querySelector('#modal-editEvent .btn-primary');
@@ -1572,7 +1576,7 @@ function submitMember() {
 }
 
 function submitEvent() {
-  const d={name:$('e-name'),date:$('e-date'),location:$('e-loc'),maxMembers:$('e-max'),leader:$('e-leader')};
+  const d={name:$('e-name'),date:$('e-date'),location:$('e-loc'),maxMembers:$('e-max'),leader:$('e-leader'),description:$('e-desc')};
   if(!d.name||!d.date||!d.location){toast('필수 항목을 입력해주세요');return;}
   google.script.run.withSuccessHandler(()=>{closeModal('addEvent');loadEventsTab();toast('모임이 등록됐어요 ✅');}).addEvent(d);
 }

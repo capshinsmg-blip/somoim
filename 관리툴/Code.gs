@@ -75,6 +75,7 @@ function doGet(e) {
           korDate: fmtKorDate_(ev.date),
           location: ev.location,
           leader: ev.leader,
+          description: ev.description,
           max: ev.maxMembers ? Number(ev.maxMembers) : 0,
           count: cnt
         };
@@ -685,14 +686,24 @@ function getEvents_() {
     location: String(row[2] || ''),
     maxMembers: row[3],
     leader: String(row[4] || ''),
-    status: String(row[5] || '모집중')
+    status: String(row[5] || '모집중'),
+    description: String(row[6] || '')
   }));
+}
+
+// 모임목록 7번째 열(소개) 헤더 보장
+function ensureEventDescCol_() {
+  const sheet = getSheet('모임목록');
+  if (String(sheet.getRange(1, 7).getValue()) !== '소개') {
+    sheet.getRange(1, 7).setValue('소개').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
+  }
 }
 
 function addEvent(data) {
   requireAuth_();
+  ensureEventDescCol_();
   getSheet('모임목록').appendRow([
-    data.name, data.date, data.location, data.maxMembers, data.leader, '모집중'
+    data.name, data.date, data.location, data.maxMembers, data.leader, '모집중', data.description || ''
   ]);
   return { success: true };
 }
@@ -710,6 +721,10 @@ function updateEvent(rowId, data) {
   sheet.getRange(rowId, 1, 1, 5).setValues([[
     data.name, data.date, data.location, data.maxMembers, data.leader
   ]]);
+  if (data.description !== undefined) {
+    ensureEventDescCol_();
+    sheet.getRange(rowId, 7).setValue(data.description);
+  }
   // 모임명 변경 시 신청 내역의 모임명도 동기화
   if (oldName && data.name && oldName !== data.name) {
     ['신청현황', '모임신청대기'].forEach(function(sn) {
@@ -1051,7 +1066,8 @@ function approveLeaderApp(rowId) {
   const dates = [row[5], row[6], row[7]].filter(d => d && String(d).trim() !== '');
   // 회차별로 쪼개지 않고 한 모임으로 묶어 생성 — 한 번 신청 = 전 회차 참석
   const dateStr = dates.map(d => fmtGasDate_(d)).join(' / ');
-  eventSheet.appendRow([row[3], dateStr, row[8], row[9], row[1], '모집중']);
+  ensureEventDescCol_();
+  eventSheet.appendRow([row[3], dateStr, row[8], row[9], row[1], '모집중', row[10]]);
   sheet.getRange(rowId, 13).setValue('승인');
   return { success: true };
 }

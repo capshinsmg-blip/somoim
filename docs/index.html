@@ -81,6 +81,19 @@ textarea.in{height:84px;resize:none;line-height:1.5}
 .loc-chosen a{margin-left:auto;color:#5b5bd6;text-decoration:none;font-weight:700}
 .ec-map{color:#5b5bd6;text-decoration:none;font-weight:600;white-space:nowrap}
 .loc-map{display:none;width:100%;height:190px;border-radius:12px;margin-top:10px;border:1px solid #e5e5ec;overflow:hidden}
+.ec-actions{display:flex;gap:8px;margin-top:14px}
+.ec-actions .ec-btn{flex:1;width:auto}
+.ec-btn2{padding:12px 18px;background:#f0eefe;color:#5b46c4;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.ec-btn2:active{background:#e3dffb}
+.d-badge{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.d-name{font-size:20px;font-weight:800;margin-bottom:14px;line-height:1.35}
+.d-info{background:#f7f6fd;border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.d-info .row{display:flex;gap:10px;font-size:13.5px;color:#444;padding:4px 0;align-items:flex-start;line-height:1.5}
+.d-info .row .k{color:#8b86a8;flex-shrink:0;font-weight:600}
+.d-map{display:none;width:100%;height:200px;border-radius:12px;margin-bottom:16px;border:1px solid #e5e5ec;overflow:hidden}
+.d-sec{font-size:12px;font-weight:700;color:#5b5bd6;margin:0 0 8px}
+.d-desc{font-size:14px;color:#333;line-height:1.7;white-space:pre-wrap;background:#fafafa;border-radius:12px;padding:14px;margin-bottom:20px;min-height:22px}
+.d-desc.empty{color:#bbb}
 </style>
 </head>
 <body>
@@ -171,6 +184,19 @@ textarea.in{height:84px;resize:none;line-height:1.5}
   </div>
 </div>
 
+<div class="ov" id="ov-detail" onclick="if(event.target===this)closeDetail()">
+  <div class="sheet">
+    <div class="sh-grab"></div>
+    <div class="d-badge" id="d-badge"></div>
+    <div class="d-name" id="d-name"></div>
+    <div class="d-info" id="d-info"></div>
+    <div class="d-map" id="d-map"></div>
+    <div class="d-sec">📝 모임 소개</div>
+    <div class="d-desc" id="d-desc"></div>
+    <button class="sbtn" id="d-apply-btn" onclick="applyFromDetail()">신청하기</button>
+  </div>
+</div>
+
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbyLzhL2tJzHQQQT5O_fL5nhbOIzugDzozOCQClQIUewq8SKuJ7efG5oJomIi3BII1ch/exec';
 var KAKAO = 'https://open.kakao.com/o/ssuPwLBi';
@@ -181,6 +207,7 @@ var KAKAO_JS_KEY = 'a036955b82c468791e2fff0ad47f5d75';
 // ▲▲▲ 예: var KAKAO_JS_KEY = 'a1b2c3d4e5f6...'; ▲▲▲
 var curEvent = '';
 var placesSvc = null, locTimer = null;
+var EVENTS = [], detailIdx = -1, detailMapObj = null, detailMarker = null;
 
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -208,31 +235,107 @@ function retryLoad(){
 }
 
 function renderEvents(events){
+  EVENTS = events;
   document.getElementById('ev-cnt').textContent = events.length;
   if(!events.length){
     document.getElementById('list').innerHTML =
       '<div class="nores"><div style="font-size:40px;margin-bottom:10px">🌱</div>지금은 모집중인 모임이 없어요.<br>곧 새로운 모임이 열릴 예정이에요!</div>';
     return;
   }
-  document.getElementById('list').innerHTML = events.map(function(e){
+  document.getElementById('list').innerHTML = events.map(function(e, i){
     var full = e.max > 0 && e.count >= e.max;
     var cap = e.max ? e.count + '/' + e.max + '명' : e.count + '명 참여';
     return '<div class="ecard">' +
-      '<div class="ec-top">' +
-        '<span class="pill' + (full ? ' pfull' : '') + '">' + (full ? '정원마감' : '모집중') + '</span>' +
-        '<span class="ec-cap">👥 ' + esc(cap) + '</span>' +
+      '<div class="ec-body" onclick="openDetail(' + i + ')" style="cursor:pointer">' +
+        '<div class="ec-top">' +
+          '<span class="pill' + (full ? ' pfull' : '') + '">' + (full ? '정원마감' : '모집중') + '</span>' +
+          '<span class="ec-cap">👥 ' + esc(cap) + '</span>' +
+        '</div>' +
+        '<div class="ec-name">' + esc(e.name) + '</div>' +
+        '<div class="ec-meta">' +
+          '<span>📅 ' + esc(e.korDate || '-') + '</span>' +
+          '<span>' + locHtml(e.location) + '</span>' +
+          (e.leader ? '<span>⭐ 리더 ' + esc(e.leader) + '</span>' : '') +
+        '</div>' +
       '</div>' +
-      '<div class="ec-name">' + esc(e.name) + '</div>' +
-      '<div class="ec-meta">' +
-        '<span>📅 ' + esc(e.korDate || '-') + '</span>' +
-        '<span>' + locHtml(e.location) + '</span>' +
-        (e.leader ? '<span>⭐ 리더 ' + esc(e.leader) + '</span>' : '') +
+      '<div class="ec-actions">' +
+        '<button class="ec-btn2" onclick="openDetail(' + i + ')">상세보기</button>' +
+        (full
+          ? '<button class="ec-btn dis" disabled>정원마감</button>'
+          : '<button class="ec-btn" onclick="openApply(this.dataset.ev)" data-ev="' + esc(e.name) + '">신청하기</button>') +
       '</div>' +
-      (full
-        ? '<button class="ec-btn dis" disabled>정원이 가득 찼어요</button>'
-        : '<button class="ec-btn" onclick="openApply(this.dataset.ev)" data-ev="' + esc(e.name) + '">신청하기</button>') +
     '</div>';
   }).join('');
+}
+
+// 상세보기 (지도 인라인 + 리더 소개)
+function locInner(loc){
+  if(!loc) return '-';
+  var m = String(loc).match(/(https?:\/\/[^\s)]+)/);
+  if(m){
+    var text = String(loc).replace(m[0], '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+    return esc(text || '장소') + ' <a class="ec-map" href="' + esc(m[1]) + '" target="_blank" rel="noopener">🗺️ 큰지도</a>';
+  }
+  return esc(loc);
+}
+
+function openDetail(i){
+  var e = EVENTS[i]; if(!e) return;
+  detailIdx = i;
+  var full = e.max > 0 && e.count >= e.max;
+  var cap = e.max ? e.count + '/' + e.max + '명' : e.count + '명 참여';
+  document.getElementById('d-badge').innerHTML =
+    '<span class="pill' + (full ? ' pfull' : '') + '">' + (full ? '정원마감' : '모집중') + '</span>' +
+    '<span class="ec-cap">👥 ' + esc(cap) + '</span>';
+  document.getElementById('d-name').textContent = e.name;
+  document.getElementById('d-info').innerHTML =
+    '<div class="row"><span class="k">📅 일시</span><span>' + esc(e.korDate || '-') + '</span></div>' +
+    '<div class="row"><span class="k">📍 장소</span><span>' + locInner(e.location) + '</span></div>' +
+    (e.leader ? '<div class="row"><span class="k">⭐ 리더</span><span>' + esc(e.leader) + '</span></div>' : '');
+  var desc = document.getElementById('d-desc');
+  if(e.description && String(e.description).trim()){
+    desc.textContent = e.description; desc.classList.remove('empty');
+  } else {
+    desc.textContent = '아직 등록된 소개가 없어요.'; desc.classList.add('empty');
+  }
+  var ab = document.getElementById('d-apply-btn');
+  if(full){ ab.disabled = true; ab.textContent = '정원이 가득 찼어요'; }
+  else { ab.disabled = false; ab.textContent = '신청하기'; }
+  renderDetailMap(e.location);
+  document.getElementById('ov-detail').classList.add('open');
+}
+
+function closeDetail(){ document.getElementById('ov-detail').classList.remove('open'); }
+
+function applyFromDetail(){
+  var e = EVENTS[detailIdx]; if(!e) return;
+  closeDetail();
+  openApply(e.name);
+}
+
+// 장소명을 지오코딩해 상세보기에 지도 표시
+function renderDetailMap(location){
+  var el = document.getElementById('d-map');
+  el.style.display = 'none';
+  if(!placesSvc || !location) return;
+  var q = String(location).replace(/https?:\/\/[^\s]+/g, '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+  if(q.length < 2) return;
+  placesSvc.keywordSearch(q, function(data, status){
+    if(status !== kakao.maps.services.Status.OK || !data.length) return;
+    var p = data[0];
+    var lat = parseFloat(p.y), lng = parseFloat(p.x);
+    if(!lat || !lng) return;
+    el.style.display = 'block';
+    var pos = new kakao.maps.LatLng(lat, lng);
+    if(!detailMapObj){
+      detailMapObj = new kakao.maps.Map(el, { center: pos, level: 3 });
+      detailMarker = new kakao.maps.Marker({ position: pos });
+      detailMarker.setMap(detailMapObj);
+    } else {
+      detailMarker.setPosition(pos);
+    }
+    setTimeout(function(){ detailMapObj.relayout(); detailMapObj.setCenter(pos); }, 0);
+  });
 }
 
 function openApply(name){
@@ -343,7 +446,7 @@ function locHtml(loc){
   var m = String(loc).match(/(https?:\/\/[^\s)]+)/);   // URL은 공백/닫는괄호 전까지
   if(m){
     var text = String(loc).replace(m[0], '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
-    return '📍 ' + esc(text || '장소') + ' <a class="ec-map" href="' + esc(m[1]) + '" target="_blank" rel="noopener">🗺️ 지도</a>';
+    return '📍 ' + esc(text || '장소') + ' <a class="ec-map" href="' + esc(m[1]) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺️ 지도</a>';
   }
   return '📍 ' + esc(loc);
 }
