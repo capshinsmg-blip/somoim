@@ -313,31 +313,46 @@ function applyFromDetail(){
   openApply(e.name);
 }
 
-// 지도핀이 있는 모임만 장소명을 지오코딩해 상세보기에 지도 표시
+// 상세보기 지도: 저장된 좌표가 있으면 검색 없이 바로 표시, 없으면(구버전 핀) 장소명으로 검색
 function renderDetailMap(location){
   var el = document.getElementById('d-map');
   el.style.display = 'none';
-  if(!placesSvc) return;
   var pl = parseLoc(location);
-  if(!pl.mapUrl) return;              // 지도핀 없음 → 지도 표시 안 함
+  // 1순위: 저장된 좌표로 바로 렌더 (검색 실패 문제 원천 차단)
+  if(pl.lat && pl.lng){
+    showDetailMapAt(el, parseFloat(pl.lat), parseFloat(pl.lng));
+    return;
+  }
+  // 2순위(구버전 핀): 장소명 검색. 이름+주소 조합이 실패하면 앞 단어(장소명)로 재시도
+  if(!placesSvc || !pl.mapUrl) return;
   var q = pl.mapName;
   if(!q || q.length < 2) return;
   placesSvc.keywordSearch(q, function(data, status){
-    if(status !== kakao.maps.services.Status.OK || !data.length) return;
-    var p = data[0];
-    var lat = parseFloat(p.y), lng = parseFloat(p.x);
-    if(!lat || !lng) return;
-    el.style.display = 'block';
-    var pos = new kakao.maps.LatLng(lat, lng);
-    if(!detailMapObj){
-      detailMapObj = new kakao.maps.Map(el, { center: pos, level: 3 });
-      detailMarker = new kakao.maps.Marker({ position: pos });
-      detailMarker.setMap(detailMapObj);
-    } else {
-      detailMarker.setPosition(pos);
+    if(status === kakao.maps.services.Status.OK && data.length){
+      showDetailMapAt(el, parseFloat(data[0].y), parseFloat(data[0].x)); return;
     }
-    setTimeout(function(){ detailMapObj.relayout(); detailMapObj.setCenter(pos); }, 0);
+    var q2 = q.split(' ').slice(0, 2).join(' ');
+    if(!q2 || q2 === q) return;
+    placesSvc.keywordSearch(q2, function(d2, s2){
+      if(s2 === kakao.maps.services.Status.OK && d2.length){
+        showDetailMapAt(el, parseFloat(d2[0].y), parseFloat(d2[0].x));
+      }
+    });
   });
+}
+
+function showDetailMapAt(el, lat, lng){
+  if(!lat || !lng || !window.kakao || !kakao.maps || !kakao.maps.Map) return;
+  el.style.display = 'block';
+  var pos = new kakao.maps.LatLng(lat, lng);
+  if(!detailMapObj){
+    detailMapObj = new kakao.maps.Map(el, { center: pos, level: 3 });
+    detailMarker = new kakao.maps.Marker({ position: pos });
+    detailMarker.setMap(detailMapObj);
+  } else {
+    detailMarker.setPosition(pos);
+  }
+  setTimeout(function(){ detailMapObj.relayout(); detailMapObj.setCenter(pos); }, 0);
 }
 
 function openApply(name){
@@ -447,8 +462,12 @@ function showLocMap(p){
 // 형식: "설명\n장소명 주소 URL" (지도핀 있음) | "설명" (설명만) | 구버전 "장소명 주소 URL"(한 줄)
 function parseLoc(loc){
   loc = String(loc || '');
+  // 좌표(@위도,경도) 추출 후 문자열에서 제거 — 나머지 파싱/표시에 영향 없게
+  var lat = '', lng = '';
+  var cm = loc.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if(cm){ lat = cm[1]; lng = cm[2]; loc = loc.replace(cm[0], '').trim(); }
   var m = loc.match(/(https?:\/\/[^\s)]+)/);
-  if(!m) return { desc: loc.trim(), mapName: '', mapUrl: '' };
+  if(!m) return { desc: loc.trim(), mapName: '', mapUrl: '', lat: lat, lng: lng };
   var url = m[1];
   var descLines = [], mapLine = '';
   loc.split('\n').forEach(function(ln){
@@ -457,7 +476,7 @@ function parseLoc(loc){
   var mapName = mapLine.replace(url, '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
   var desc = descLines.join('\n').trim();
   if(!desc) desc = mapName;   // 구버전(설명 없이 장소만) 호환
-  return { desc: desc, mapName: mapName, mapUrl: url };
+  return { desc: desc, mapName: mapName, mapUrl: url, lat: lat, lng: lng };
 }
 
 function locHtml(loc){
@@ -534,8 +553,9 @@ function pickPlace(i){
   var p = locData[i]; if(!p) return;
   var addr = p.road_address_name || p.address_name || '';
   document.getElementById('l-mapsearch').value = p.place_name;
-  // location에 붙일 지도 라인: "장소명 주소 URL" (URL 유무와 무관하게 저장)
-  document.getElementById('l-mapinfo').value = (p.place_name + (addr ? ' ' + addr : '') + (p.place_url ? ' ' + p.place_url : '')).trim();
+  // location에 붙일 지도 라인: "장소명 주소 URL @위도,경도" (좌표까지 저장 → 상세보기 지도를 검색 없이 바로 표시)
+  var coord = (p.y && p.x) ? ' @' + p.y + ',' + p.x : '';
+  document.getElementById('l-mapinfo').value = (p.place_name + (addr ? ' ' + addr : '') + (p.place_url ? ' ' + p.place_url : '') + coord).trim();
   hideLocResults();
   document.getElementById('loc-chosen-name').textContent = p.place_name + (addr ? ' · ' + addr : '');
   document.getElementById('loc-chosen').classList.add('show');

@@ -119,11 +119,14 @@ function fmtKorDate_(s) {
   }).join(' / ');
 }
 
-// 장소 문자열을 설명/지도핀으로 분리 (보드 포맷과 동일: "설명\n장소명 주소 URL")
+// 장소 문자열을 설명/지도핀으로 분리 (보드 포맷과 동일: "설명\n장소명 주소 URL @위도,경도")
 function parseLoc_(loc) {
   loc = String(loc || '');
+  var lat = '', lng = '';
+  var cm = loc.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (cm) { lat = cm[1]; lng = cm[2]; loc = loc.replace(cm[0], '').trim(); }
   var m = loc.match(/(https?:\/\/[^\s)]+)/);
-  if (!m) return { desc: loc.trim(), mapName: '', mapUrl: '' };
+  if (!m) return { desc: loc.trim(), mapName: '', mapUrl: '', lat: lat, lng: lng };
   var url = m[1];
   var descLines = [], mapLine = '';
   loc.split('\n').forEach(function(ln) {
@@ -132,7 +135,7 @@ function parseLoc_(loc) {
   var mapName = mapLine.replace(url, '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
   var desc = descLines.join('\n').trim();
   if (!desc) desc = mapName;   // 구버전(설명 없이 장소만) 호환
-  return { desc: desc, mapName: mapName, mapUrl: url };
+  return { desc: desc, mapName: mapName, mapUrl: url, lat: lat, lng: lng };
 }
 
 function getShortUrl(longUrl) {
@@ -289,24 +292,28 @@ function go(){
     .submitEventApplication({eventName:'${js(ev.name)}',name:n,phone:p});
 }
 // 지도핀이 있는 모임만 카카오 지도 인라인 표시 (SDK 도메인 미등록 시 링크로 대체)
+var MAP_LAT='${loc.lat || ''}', MAP_LNG='${loc.lng || ''}';
 var MAP_Q = '${js(loc.mapName || '')}';
 var MAP_KEY = '${KAKAO_JS_KEY}';
-if(MAP_Q && MAP_KEY){
+function drawApplyMap(lat,lng){
+  if(!lat||!lng) return;
+  var el=document.getElementById('applymap'); el.style.display='block';
+  var pos=new kakao.maps.LatLng(lat,lng);
+  var map=new kakao.maps.Map(el,{center:pos,level:3});
+  new kakao.maps.Marker({position:pos,map:map});
+  setTimeout(function(){ map.relayout(); map.setCenter(pos); },0);
+}
+if(((MAP_LAT&&MAP_LNG)||MAP_Q) && MAP_KEY){
   var ks=document.createElement('script');
   ks.src='https://dapi.kakao.com/v2/maps/sdk.js?appkey='+MAP_KEY+'&libraries=services&autoload=false';
   ks.onload=function(){
     if(!window.kakao||!kakao.maps) return;
     kakao.maps.load(function(){
+      if(MAP_LAT&&MAP_LNG){ drawApplyMap(parseFloat(MAP_LAT),parseFloat(MAP_LNG)); return; }
       var svc=new kakao.maps.services.Places();
       svc.keywordSearch(MAP_Q, function(data,status){
         if(status!==kakao.maps.services.Status.OK||!data.length) return;
-        var p=data[0], lat=parseFloat(p.y), lng=parseFloat(p.x);
-        if(!lat||!lng) return;
-        var el=document.getElementById('applymap'); el.style.display='block';
-        var pos=new kakao.maps.LatLng(lat,lng);
-        var map=new kakao.maps.Map(el,{center:pos,level:3});
-        new kakao.maps.Marker({position:pos,map:map});
-        setTimeout(function(){ map.relayout(); map.setCenter(pos); },0);
+        drawApplyMap(parseFloat(data[0].y),parseFloat(data[0].x));
       });
     });
   };

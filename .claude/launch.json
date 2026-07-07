@@ -12,6 +12,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "3100", "--directory", "docs"],
       "port": 3100
+    },
+    {
+      "name": "홈페이지 미리보기 (node)",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": [".claude/static-server.js"],
+      "port": 3100
     }
   ]
 }

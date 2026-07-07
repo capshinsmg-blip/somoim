@@ -1634,7 +1634,8 @@ window.addEventListener('message', function(e){
   if(e.origin !== 'https://capshinsmg-blip.github.io') return;
   var d = e.data;
   if(!d || d.type !== 'kakaoPlace' || !mapPickTarget) return;
-  var line = (d.place_name + (d.address ? ' ' + d.address : '') + (d.place_url ? ' ' + d.place_url : '')).trim();
+  var coord = (d.y && d.x) ? ' @' + d.y + ',' + d.x : '';
+  var line = (d.place_name + (d.address ? ' ' + d.address : '') + (d.place_url ? ' ' + d.place_url : '') + coord).trim();
   var el = document.getElementById(mapPickTarget);
   if(el){ el.value = line; toast('📍 ' + d.place_name + ' 선택됨 ✅'); }
   var wrap = document.getElementById(mapPickTarget + 'frame-wrap'); // e-map → e-mapframe-wrap
