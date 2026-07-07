@@ -159,16 +159,18 @@ textarea.in{height:84px;resize:none;line-height:1.5}
         <div><label>2회차 (선택)</label><input class="in" id="l-d2" type="datetime-local"></div>
         <div><label>3회차 (선택)</label><input class="in" id="l-d3" type="datetime-local"></div>
       </div>
-      <label>장소 *</label>
+      <label>모임 장소 설명 *</label>
+      <textarea class="in" id="l-loc" rows="2" placeholder="어디서 만나는지 자유롭게 적어주세요&#10;예: 안산천 러닝코스 성포동 입구 / 중앙역 2번출구 앞"></textarea>
+      <label style="margin-top:12px">📍 지도에서 위치 표시 <span style="color:#aaa;font-weight:500">(선택)</span></label>
       <div class="loc-wrap">
-        <input class="in" id="l-loc" placeholder="예: 중앙동 OO카페" autocomplete="off" oninput="onLocInput()">
-        <input type="hidden" id="l-loc-url">
+        <input class="in" id="l-mapsearch" placeholder="정확한 장소가 있다면 검색 (예: 안산 스타벅스)" autocomplete="off" oninput="onLocInput()">
+        <input type="hidden" id="l-mapinfo">
         <div class="loc-results" id="loc-results"></div>
       </div>
       <div class="loc-hint" id="loc-hint"></div>
       <div class="loc-chosen" id="loc-chosen">
         <span>📍 <span id="loc-chosen-name"></span></span>
-        <a href="#" id="loc-chosen-link" target="_blank" rel="noopener">🗺️ 큰지도</a>
+        <a href="#" id="loc-chosen-clear" onclick="clearMapPick();return false;" style="margin-left:auto;color:#c92a2a;text-decoration:none;font-weight:700">✕ 제거</a>
       </div>
       <div class="loc-map" id="loc-map"></div>
       <label>최대 인원 *</label>
@@ -270,13 +272,11 @@ function renderEvents(events){
 
 // 상세보기 (지도 인라인 + 리더 소개)
 function locInner(loc){
-  if(!loc) return '-';
-  var m = String(loc).match(/(https?:\/\/[^\s)]+)/);
-  if(m){
-    var text = String(loc).replace(m[0], '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
-    return esc(text || '장소') + ' <a class="ec-map" href="' + esc(m[1]) + '" target="_blank" rel="noopener">🗺️ 큰지도</a>';
-  }
-  return esc(loc);
+  var p = parseLoc(loc);
+  if(!p.desc && !p.mapUrl) return '-';
+  var html = esc(p.desc || '장소').replace(/\n/g, '<br>');
+  if(p.mapUrl) html += ' <a class="ec-map" href="' + esc(p.mapUrl) + '" target="_blank" rel="noopener">🗺️ 큰지도</a>';
+  return html;
 }
 
 function openDetail(i){
@@ -313,13 +313,15 @@ function applyFromDetail(){
   openApply(e.name);
 }
 
-// 장소명을 지오코딩해 상세보기에 지도 표시
+// 지도핀이 있는 모임만 장소명을 지오코딩해 상세보기에 지도 표시
 function renderDetailMap(location){
   var el = document.getElementById('d-map');
   el.style.display = 'none';
-  if(!placesSvc || !location) return;
-  var q = String(location).replace(/https?:\/\/[^\s]+/g, '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
-  if(q.length < 2) return;
+  if(!placesSvc) return;
+  var pl = parseLoc(location);
+  if(!pl.mapUrl) return;              // 지도핀 없음 → 지도 표시 안 함
+  var q = pl.mapName;
+  if(!q || q.length < 2) return;
   placesSvc.keywordSearch(q, function(data, status){
     if(status !== kakao.maps.services.Status.OK || !data.length) return;
     var p = data[0];
@@ -398,11 +400,11 @@ function submitApply(){
     .catch(function(){ btn.disabled = false; btn.textContent = '신청하기'; showErr('a-err','error'); });
 }
 function submitLeader(){
-  var locText = v('l-loc');
-  var locUrl = document.getElementById('l-loc-url').value;
+  var desc = v('l-loc');
+  var mapInfo = document.getElementById('l-mapinfo').value;   // "place_name place_url" or ""
   var d = { action:'leader', name:v('l-name'), phone:v('l-phone'), eventName:v('l-ename'), category:v('l-cat'),
             date1:v('l-d1'), date2:v('l-d2'), date3:v('l-d3'),
-            location: locUrl ? (locText + ' ' + locUrl) : locText,
+            location: mapInfo ? (desc + '\n' + mapInfo) : desc,
             maxMembers:v('l-max'), intro:v('l-intro'), materials:v('l-mat') };
   hideErr('l-err');
   if(!d.name||!d.phone||!d.eventName||!d.category||!d.date1||!d.location||!d.maxMembers||!d.intro){ showErr('l-err','missing'); return; }
@@ -441,14 +443,30 @@ function showLocMap(p){
 }
 
 // 카드에 표시되는 장소 문자열에서 URL을 찾아 '🗺️ 지도' 링크로 변환
+// 장소 문자열을 설명/지도핀으로 분리
+// 형식: "설명\n장소명 주소 URL" (지도핀 있음) | "설명" (설명만) | 구버전 "장소명 주소 URL"(한 줄)
+function parseLoc(loc){
+  loc = String(loc || '');
+  var m = loc.match(/(https?:\/\/[^\s)]+)/);
+  if(!m) return { desc: loc.trim(), mapName: '', mapUrl: '' };
+  var url = m[1];
+  var descLines = [], mapLine = '';
+  loc.split('\n').forEach(function(ln){
+    if(ln.indexOf(url) >= 0) mapLine = ln; else descLines.push(ln);
+  });
+  var mapName = mapLine.replace(url, '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+  var desc = descLines.join('\n').trim();
+  if(!desc) desc = mapName;   // 구버전(설명 없이 장소만) 호환
+  return { desc: desc, mapName: mapName, mapUrl: url };
+}
+
 function locHtml(loc){
-  if(!loc) return '📍 -';
-  var m = String(loc).match(/(https?:\/\/[^\s)]+)/);   // URL은 공백/닫는괄호 전까지
-  if(m){
-    var text = String(loc).replace(m[0], '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
-    return '📍 ' + esc(text || '장소') + ' <a class="ec-map" href="' + esc(m[1]) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺️ 지도</a>';
-  }
-  return '📍 ' + esc(loc);
+  var p = parseLoc(loc);
+  if(!p.desc && !p.mapUrl) return '📍 -';
+  var first = (p.desc || '장소').split('\n')[0];   // 카드엔 첫 줄만
+  var html = '📍 ' + esc(first);
+  if(p.mapUrl) html += ' <a class="ec-map" href="' + esc(p.mapUrl) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺️ 지도</a>';
+  return html;
 }
 
 // 카카오맵 SDK 동적 로드 (키가 있을 때만) — 없으면 장소칸은 일반 텍스트로 동작
@@ -460,26 +478,31 @@ function initKakao(){
     if(!window.kakao || !kakao.maps){ return; }
     kakao.maps.load(function(){
       placesSvc = new kakao.maps.services.Places();
-      var el = document.getElementById('l-loc');
-      if(el) el.placeholder = '🔍 장소 검색 (예: 안산 스타벅스)';
       var h = document.getElementById('loc-hint');
-      if(h) h.textContent = '이름·주소를 입력하면 카카오맵에서 찾아드려요';
+      if(h) h.textContent = '검색해서 선택하면 아래에 지도가 표시돼요 (선택)';
     });
   };
   document.head.appendChild(s);
 }
 
-function clearChosen(){
-  document.getElementById('l-loc-url').value = '';
+// 지도핀 상태만 해제 (검색어는 유지) — 검색어를 다시 입력할 때 사용
+function clearPickState(){
+  document.getElementById('l-mapinfo').value = '';
   document.getElementById('loc-chosen').classList.remove('show');
   var mp = document.getElementById('loc-map'); if(mp) mp.style.display = 'none';
+}
+// ✕ 제거 — 검색어까지 전부 초기화
+function clearMapPick(){
+  document.getElementById('l-mapsearch').value = '';
+  clearPickState();
+  hideLocResults();
 }
 function hideLocResults(){ var b = document.getElementById('loc-results'); if(b) b.classList.remove('show'); }
 
 function onLocInput(){
-  clearChosen();                       // 직접 수정하면 이전 선택(지도링크) 해제
-  if(!placesSvc){ return; }            // 검색 비활성(키 없음) → 일반 텍스트 입력
-  var q = document.getElementById('l-loc').value.trim();
+  clearPickState();                    // 검색어를 바꾸면 이전 핀 해제
+  if(!placesSvc){ return; }            // 검색 비활성(키 없음)
+  var q = document.getElementById('l-mapsearch').value.trim();
   clearTimeout(locTimer);
   if(q.length < 2){ hideLocResults(); return; }
   locTimer = setTimeout(function(){
@@ -510,12 +533,11 @@ function renderLocResults(empty){
 function pickPlace(i){
   var p = locData[i]; if(!p) return;
   var addr = p.road_address_name || p.address_name || '';
-  document.getElementById('l-loc').value = p.place_name + (addr ? ' ' + addr : '');
-  document.getElementById('l-loc-url').value = p.place_url || '';
+  document.getElementById('l-mapsearch').value = p.place_name;
+  // location에 붙일 지도 라인: "장소명 주소 URL" (URL 유무와 무관하게 저장)
+  document.getElementById('l-mapinfo').value = (p.place_name + (addr ? ' ' + addr : '') + (p.place_url ? ' ' + p.place_url : '')).trim();
   hideLocResults();
   document.getElementById('loc-chosen-name').textContent = p.place_name + (addr ? ' · ' + addr : '');
-  var link = document.getElementById('loc-chosen-link');
-  if(p.place_url){ link.href = p.place_url; link.style.display = ''; } else { link.style.display = 'none'; }
   document.getElementById('loc-chosen').classList.add('show');
   showLocMap(p);
 }
