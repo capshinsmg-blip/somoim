@@ -65,6 +65,21 @@ textarea.in{height:84px;resize:none;line-height:1.5}
 .done-i{font-size:52px;margin-bottom:12px}
 .done-t{font-size:16px;font-weight:800;margin-bottom:6px}
 .done-s{font-size:13px;color:#888;margin-bottom:18px;line-height:1.6}
+.loc-wrap{position:relative}
+.loc-results{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid #e5e5ec;border-radius:10px;box-shadow:0 6px 22px rgba(30,30,60,.14);max-height:230px;overflow-y:auto;z-index:20;display:none}
+.loc-results.show{display:block}
+.loc-item{padding:10px 13px;cursor:pointer;border-bottom:1px solid #f2f2f6}
+.loc-item:last-child{border-bottom:none}
+.loc-item:hover,.loc-item.on{background:#f5f3ff}
+.loc-item .lp{font-size:13.5px;font-weight:600;color:#222}
+.loc-item .lc{font-size:11px;color:#5b5bd6;font-weight:600;margin-left:6px}
+.loc-item .la{font-size:11.5px;color:#888;margin-top:2px}
+.loc-hint{font-size:11px;color:#aaa;margin-top:5px;min-height:1px}
+.loc-empty{padding:16px;text-align:center;color:#aaa;font-size:12.5px}
+.loc-chosen{display:none;align-items:center;gap:6px;background:#f0eefe;border-radius:8px;padding:7px 11px;margin-top:7px;font-size:12px;color:#5b46c4}
+.loc-chosen.show{display:flex}
+.loc-chosen a{margin-left:auto;color:#5b5bd6;text-decoration:none;font-weight:700}
+.ec-map{color:#5b5bd6;text-decoration:none;font-weight:600;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -130,10 +145,19 @@ textarea.in{height:84px;resize:none;line-height:1.5}
         <div><label>2회차 (선택)</label><input class="in" id="l-d2" type="datetime-local"></div>
         <div><label>3회차 (선택)</label><input class="in" id="l-d3" type="datetime-local"></div>
       </div>
-      <div class="row2">
-        <div><label>장소 *</label><input class="in" id="l-loc" placeholder="예: 중앙동 OO카페"></div>
-        <div><label>최대 인원 *</label><input class="in" id="l-max" type="number" min="2" placeholder="8"></div>
+      <label>장소 *</label>
+      <div class="loc-wrap">
+        <input class="in" id="l-loc" placeholder="예: 중앙동 OO카페" autocomplete="off" oninput="onLocInput()">
+        <input type="hidden" id="l-loc-url">
+        <div class="loc-results" id="loc-results"></div>
       </div>
+      <div class="loc-hint" id="loc-hint"></div>
+      <div class="loc-chosen" id="loc-chosen">
+        <span>📍 <span id="loc-chosen-name"></span></span>
+        <a href="#" id="loc-chosen-link" target="_blank" rel="noopener">🗺️ 지도</a>
+      </div>
+      <label>최대 인원 *</label>
+      <input class="in" id="l-max" type="number" min="2" placeholder="8">
       <label>모임 소개 *</label>
       <textarea class="in" id="l-intro" placeholder="어떤 모임인지 간단히 소개해주세요"></textarea>
       <label>준비물 (선택)</label>
@@ -148,7 +172,13 @@ textarea.in{height:84px;resize:none;line-height:1.5}
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbyLzhL2tJzHQQQT5O_fL5nhbOIzugDzozOCQClQIUewq8SKuJ7efG5oJomIi3BII1ch/exec';
 var KAKAO = 'https://open.kakao.com/o/ssuPwLBi';
+// ▼▼▼ 카카오 개발자 사이트에서 발급받은 JavaScript 키를 아래에 붙여넣으세요 ▼▼▼
+//    (developers.kakao.com → 내 애플리케이션 → 앱 키 → JavaScript 키)
+//    비워두면 장소칸은 일반 텍스트 입력으로 동작합니다.
+var KAKAO_JS_KEY = '';
+// ▲▲▲ 예: var KAKAO_JS_KEY = 'a1b2c3d4e5f6...'; ▲▲▲
 var curEvent = '';
+var placesSvc = null, locTimer = null;
 
 function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -193,7 +223,7 @@ function renderEvents(events){
       '<div class="ec-name">' + esc(e.name) + '</div>' +
       '<div class="ec-meta">' +
         '<span>📅 ' + esc(e.korDate || '-') + '</span>' +
-        '<span>📍 ' + esc(e.location || '-') + '</span>' +
+        '<span>' + locHtml(e.location) + '</span>' +
         (e.leader ? '<span>⭐ 리더 ' + esc(e.leader) + '</span>' : '') +
       '</div>' +
       (full
@@ -263,9 +293,12 @@ function submitApply(){
     .catch(function(){ btn.disabled = false; btn.textContent = '신청하기'; showErr('a-err','error'); });
 }
 function submitLeader(){
+  var locText = v('l-loc');
+  var locUrl = document.getElementById('l-loc-url').value;
   var d = { action:'leader', name:v('l-name'), phone:v('l-phone'), eventName:v('l-ename'), category:v('l-cat'),
             date1:v('l-d1'), date2:v('l-d2'), date3:v('l-d3'),
-            location:v('l-loc'), maxMembers:v('l-max'), intro:v('l-intro'), materials:v('l-mat') };
+            location: locUrl ? (locText + ' ' + locUrl) : locText,
+            maxMembers:v('l-max'), intro:v('l-intro'), materials:v('l-mat') };
   hideErr('l-err');
   if(!d.name||!d.phone||!d.eventName||!d.category||!d.date1||!d.location||!d.maxMembers||!d.intro){ showErr('l-err','missing'); return; }
   var btn = document.getElementById('l-btn');
@@ -279,7 +312,93 @@ function submitLeader(){
     .catch(function(){ btn.disabled = false; btn.textContent = '리더 신청하기'; showErr('l-err','error'); });
 }
 
+// ===== 장소(카카오맵 장소검색) =====
+var locData = [];
+
+// 카드에 표시되는 장소 문자열에서 URL을 찾아 '🗺️ 지도' 링크로 변환
+function locHtml(loc){
+  if(!loc) return '📍 -';
+  var m = String(loc).match(/(https?:\/\/[^\s)]+)/);   // URL은 공백/닫는괄호 전까지
+  if(m){
+    var text = String(loc).replace(m[0], '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+    return '📍 ' + esc(text || '장소') + ' <a class="ec-map" href="' + esc(m[1]) + '" target="_blank" rel="noopener">🗺️ 지도</a>';
+  }
+  return '📍 ' + esc(loc);
+}
+
+// 카카오맵 SDK 동적 로드 (키가 있을 때만) — 없으면 장소칸은 일반 텍스트로 동작
+function initKakao(){
+  if(!KAKAO_JS_KEY){ return; }
+  var s = document.createElement('script');
+  s.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + KAKAO_JS_KEY + '&libraries=services&autoload=false';
+  s.onload = function(){
+    if(!window.kakao || !kakao.maps){ return; }
+    kakao.maps.load(function(){
+      placesSvc = new kakao.maps.services.Places();
+      var el = document.getElementById('l-loc');
+      if(el) el.placeholder = '🔍 장소 검색 (예: 안산 스타벅스)';
+      var h = document.getElementById('loc-hint');
+      if(h) h.textContent = '이름·주소를 입력하면 카카오맵에서 찾아드려요';
+    });
+  };
+  document.head.appendChild(s);
+}
+
+function clearChosen(){
+  document.getElementById('l-loc-url').value = '';
+  document.getElementById('loc-chosen').classList.remove('show');
+}
+function hideLocResults(){ var b = document.getElementById('loc-results'); if(b) b.classList.remove('show'); }
+
+function onLocInput(){
+  clearChosen();                       // 직접 수정하면 이전 선택(지도링크) 해제
+  if(!placesSvc){ return; }            // 검색 비활성(키 없음) → 일반 텍스트 입력
+  var q = document.getElementById('l-loc').value.trim();
+  clearTimeout(locTimer);
+  if(q.length < 2){ hideLocResults(); return; }
+  locTimer = setTimeout(function(){
+    placesSvc.keywordSearch(q, function(data, status){
+      if(status === kakao.maps.services.Status.OK){ locData = data.slice(0, 6); renderLocResults(false); }
+      else { locData = []; renderLocResults(true); }
+    });
+  }, 280);
+}
+
+function renderLocResults(empty){
+  var box = document.getElementById('loc-results');
+  if(empty || !locData.length){
+    box.innerHTML = '<div class="loc-empty">검색 결과가 없어요. 직접 입력해도 됩니다.</div>';
+    box.classList.add('show'); return;
+  }
+  box.innerHTML = locData.map(function(p, i){
+    var cat = p.category_group_name ? '<span class="lc">' + esc(p.category_group_name) + '</span>' : '';
+    var addr = p.road_address_name || p.address_name || '';
+    return '<div class="loc-item" onmousedown="pickPlace(' + i + ')">' +
+             '<div class="lp">' + esc(p.place_name) + cat + '</div>' +
+             (addr ? '<div class="la">' + esc(addr) + '</div>' : '') +
+           '</div>';
+  }).join('');
+  box.classList.add('show');
+}
+
+function pickPlace(i){
+  var p = locData[i]; if(!p) return;
+  var addr = p.road_address_name || p.address_name || '';
+  document.getElementById('l-loc').value = p.place_name + (addr ? ' ' + addr : '');
+  document.getElementById('l-loc-url').value = p.place_url || '';
+  hideLocResults();
+  document.getElementById('loc-chosen-name').textContent = p.place_name + (addr ? ' · ' + addr : '');
+  var link = document.getElementById('loc-chosen-link');
+  if(p.place_url){ link.href = p.place_url; link.style.display = ''; } else { link.style.display = 'none'; }
+  document.getElementById('loc-chosen').classList.add('show');
+}
+
+document.addEventListener('click', function(e){
+  if(e.target && e.target.closest && !e.target.closest('.loc-wrap')) hideLocResults();
+});
+
 loadEvents();
+initKakao();
 </script>
 </body>
 </html>

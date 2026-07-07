@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "3000", "--directory", "관리툴"],
       "port": 3000
+    },
+    {
+      "name": "홈페이지 미리보기",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "3100", "--directory", "docs"],
+      "port": 3100
     }
   ]
 }
