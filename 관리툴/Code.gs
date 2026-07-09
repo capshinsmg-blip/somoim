@@ -773,7 +773,8 @@ function getMembers_() {
     hobby: String(row[5] || ''),
     joinDate: row[6] ? (row[6] instanceof Date ? Utilities.formatDate(row[6], 'Asia/Seoul', 'yyyy-MM-dd') : String(row[6])) : '',
     status: String(row[7] || '활성'),
-    flagged: row[8] === true || String(row[8]).toUpperCase() === 'TRUE'
+    flagged: row[8] === true || String(row[8]).toUpperCase() === 'TRUE',
+    note: String(row[9] || '')
   }));
 }
 
@@ -810,6 +811,16 @@ function updateMember(rowId, data) {
     data.name, data.age, data.gender, normalizePhone_(data.phone),
     data.location, data.hobby, data.joinDate, data.status
   ]]);
+  // 특이사항(10열) 저장 — 지인여부(9열)는 건드리지 않음
+  if (data.note !== undefined) {
+    if (String(sheet.getRange(1, 9).getValue() || '').trim() !== '지인여부') {
+      sheet.getRange(1, 9).setValue('지인여부').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
+    }
+    if (String(sheet.getRange(1, 10).getValue() || '').trim() !== '특이사항') {
+      sheet.getRange(1, 10).setValue('특이사항').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
+    }
+    sheet.getRange(rowId, 10).setValue(String(data.note || ''));
+  }
   let synced = 0;
   if (oldName && data.name && oldName !== data.name) {
     synced = syncMemberNameChange_(oldName, data.name);

@@ -561,6 +561,10 @@ select.form-input{cursor:pointer}
         </select>
       </div>
     </div>
+    <div class="form-group" style="margin-top:2px">
+      <label class="form-label">📌 특이사항 <span style="color:#aaa;font-weight:400;font-size:11px">운영자 메모 · 모임 신청 검토 시 표시돼요</span></label>
+      <textarea class="form-input" id="em-note" style="height:72px;resize:vertical;font-family:inherit;line-height:1.5" placeholder="예: 리더 경험 많음 / 노쇼 이력 있음 / 결제 확인 필요 등"></textarea>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('editMember')">취소</button>
       <button class="btn btn-primary" onclick="saveMemberEdit()">저장</button>
@@ -1060,18 +1064,27 @@ function openAnnounceModal(app) {
 function openEventAnnounce(eventId) {
   const e = E.find(x=>x.id===eventId);
   if(!e) return;
-  openAnnounceModal({
+  // 모임관리 공지문을 '생성 시 공지문'과 동일하게: 원본 리더신청(LA)에서 분야·소개·준비물·회차까지 복원
+  const build = (la) => openAnnounceModal({
     eventName: e.name,
-    category: '',
-    date1: e.date,
-    date2: '',
-    date3: '',
+    category: la ? (la.category || '') : '',
+    date1: (la && la.date1) ? la.date1 : e.date,
+    date2: la ? (la.date2 || '') : '',
+    date3: la ? (la.date3 || '') : '',
     place: e.location,
     maxSize: String(e.maxMembers||'-'),
     name: e.leader||'-',
-    description: '',
-    supplies: ''
+    description: e.description || (la ? (la.description || '') : ''),
+    supplies: la ? (la.supplies || '') : ''
   });
+  const findLA = list => (list || []).find(x => x.eventName === e.name);
+  if(LA && LA.length){ build(findLA(LA)); }
+  else {
+    google.script.run
+      .withSuccessHandler(list => { LA = list || []; build(findLA(LA)); })
+      .withFailureHandler(() => build(null))
+      .getLeaderApps();
+  }
 }
 
 function buildAnnouncement(app) {
@@ -1210,6 +1223,8 @@ function openApplicants(eventName) {
   }).getEventApplicants(eventName);
 }
 
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
 function renderApplicants(list, eventName) {
   const el = document.getElementById('applicants-content');
   const pending = list.filter(a=>a.status==='대기중');
@@ -1230,6 +1245,9 @@ function renderApplicants(list, eventName) {
       : '';
     let detail = '';
     if(isMember) {
+      const noteHtml = (member.note && String(member.note).trim())
+        ? `<div style="margin-top:10px;padding:9px 12px;background:#fff9db;border:1px solid #ffe08a;border-radius:8px;font-size:12px;color:#8a6d1a;line-height:1.55"><b>📌 특이사항</b><br>${escHtml(member.note).replace(/\n/g,'<br>')}</div>`
+        : '';
       const led = E.filter(e=>e.leader===member.name);
       const att = R.filter(r=>r.memberName===member.name);
       const ledHtml = led.length
@@ -1238,7 +1256,7 @@ function renderApplicants(list, eventName) {
       const attHtml = att.length
         ? att.slice(-5).map(r=>`<div style="padding:3px 8px;background:#fff;border-radius:5px;border:1px solid #e5e5e5;margin-bottom:3px;font-size:11px">${r.eventName} · ${bA(r.attendance)}</div>`).join('')
         : '<span style="color:#bbb;font-size:11px">없음</span>';
-      detail = `
+      detail = `${noteHtml}
         <div style="margin-top:10px;padding:10px 12px;background:#f8f8fc;border-radius:8px">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div>
@@ -1471,6 +1489,7 @@ function openEditMember(id) {
   document.getElementById('em-hobby').value   = m.hobby;
   document.getElementById('em-joinDate').value= m.joinDate;
   document.getElementById('em-status').value  = m.status;
+  document.getElementById('em-note').value    = m.note || '';
   openModal('editMember');
 }
 
@@ -1484,7 +1503,8 @@ function saveMemberEdit() {
     location: document.getElementById('em-loc').value.trim(),
     hobby:    document.getElementById('em-hobby').value.trim(),
     joinDate: document.getElementById('em-joinDate').value,
-    status:   document.getElementById('em-status').value
+    status:   document.getElementById('em-status').value,
+    note:     document.getElementById('em-note').value.trim()
   };
   if(!data.name){ toast('이름을 입력해주세요'); return; }
   const btn = document.querySelector('#modal-editMember .btn-primary');
@@ -1613,8 +1633,15 @@ function parseLocAdmin(loc){
 }
 // 장소 표시용: URL을 뺀 설명의 첫 줄만 (대시보드 등 좁은 칸에서 사용)
 function firstLocLine(loc){
-  const d = parseLocAdmin(loc).desc || '';
-  return (d.split('\n')[0] || '-');
+  const p = parseLocAdmin(loc);
+  const d = (p.desc || '').split('\n')[0].trim();
+  if(d) return d;
+  // 설명 없이 지도핀만 있는 장소: 지도라인에서 URL·좌표(@위도,경도) 제거한 장소명·주소 표시 (그냥 '-'로 사라지지 않게)
+  if(p.mapLine){
+    const nm = p.mapLine.replace(/(https?:\/\/[^\s)]+)/g,'').replace(/@-?\d+\.\d+,-?\d+\.\d+/g,'').replace(/[()]/g,' ').replace(/\s+/g,' ').trim();
+    if(nm) return nm;
+  }
+  return '-';
 }
 // 설명 + 지도라인 → 저장용 location 문자열
 function composeLoc(desc, mapLine){
