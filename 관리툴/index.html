@@ -150,6 +150,13 @@ select.form-input{cursor:pointer}
     <div class="ao-icon">🔐</div>
     <div class="ao-title" id="ao-title">접근 권한 확인 중...</div>
     <div class="ao-sub" id="ao-sub">잠시만 기다려주세요.</div>
+    <div id="ao-code" style="display:none;margin-top:18px">
+      <input id="ao-code-input" maxlength="6" autocomplete="off" placeholder="접속코드 6자리" onkeydown="if(event.key==='Enter')submitCode()"
+        style="width:100%;text-align:center;font-size:20px;letter-spacing:4px;font-weight:700;text-transform:uppercase;padding:12px;border:1.5px solid #d8d8e8;border-radius:10px;outline:none;font-family:monospace">
+      <button id="ao-code-btn" onclick="submitCode()"
+        style="width:100%;margin-top:10px;padding:12px;background:#5b5bd6;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">입장하기</button>
+      <div id="ao-code-msg" style="font-size:12px;color:#c92a2a;margin-top:10px;min-height:16px"></div>
+    </div>
   </div>
 </div>
 
@@ -657,7 +664,7 @@ select.form-input{cursor:pointer}
 <div id="modal-operators" class="modal-overlay">
   <div class="modal" style="max-width:460px">
     <div class="modal-title">👤 운영자 관리</div>
-    <p style="font-size:12.5px;color:#888;line-height:1.6;margin-bottom:14px">운영자로 등록하면 이 관리툴에 <b>로그인</b>할 수 있고, 가입신청의 <b>담당자</b>로 배정할 수 있어요.<br>구글 계정(Gmail) 이메일을 정확히 입력해주세요.</p>
+    <p style="font-size:12.5px;color:#888;line-height:1.6;margin-bottom:14px">운영자로 등록하면 <b>6자리 접속코드</b>가 자동 발급돼요. 아래 목록에서 코드를 복사해 운영자에게 전달하면, 운영자는 <b>관리툴 주소 + 접속코드</b>로 로그인할 수 있어요.<br>이메일은 담당자 배정·구분에 쓰여요(정확히 입력).</p>
     <div class="form-row">
       <div class="form-group"><label class="form-label">구글 이메일 *</label><input class="form-input" id="op-email" type="email" placeholder="hong@gmail.com"></div>
       <div class="form-group"><label class="form-label">표시 이름 *</label><input class="form-input" id="op-name" placeholder="홍길동"></div>
@@ -858,10 +865,13 @@ function renderOperators(list) {
   el.innerHTML = list.map(o=>{
     const isMe = String(o.email).toLowerCase()===String(myEmail).toLowerCase();
     const safeEmail = String(o.email).replace(/'/g,"\\'");
+    const code = o.code || '—';
+    const safeCode = String(code).replace(/'/g,"\\'");
     return `<div style="display:flex;align-items:center;gap:8px;background:#f8f8fc;border-radius:8px;padding:8px 12px">
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;font-size:13px">${o.name}${isMe?' <span style="color:#5b5bd6;font-size:11px">(나)</span>':''}</div>
         <div style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.email}</div>
+        <div style="font-size:11px;margin-top:3px;color:#5b46c4">🔑 접속코드 <b style="font-family:monospace;letter-spacing:1px">${code}</b><a href="#" onclick="copyOpCode('${safeCode}');return false" style="color:#5b5bd6;text-decoration:none;margin-left:6px;font-weight:600">복사</a></div>
       </div>
       <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;background:#fff5f5;color:#c92a2a;border:1px solid #ffd0d0" onclick="removeOperatorUI('${safeEmail}')">제거</button>
     </div>`;
@@ -879,7 +889,7 @@ function addOperatorUI() {
       renderOperators(OPS);
       document.getElementById('op-email').value=''; document.getElementById('op-name').value='';
       renderApps(A);
-      toast('✅ 운영자가 추가됐어요');
+      toast('✅ 추가됨! 접속코드: ' + (r.newCode || '') + ' — 목록에서 복사해 전달하세요');
     } else {
       toast(r.code==='dup'?'이미 등록된 이메일이에요':r.code==='bad_email'?'이메일 형식을 확인해주세요':'이름을 입력해주세요');
     }
@@ -892,6 +902,12 @@ function removeOperatorUI(email) {
     if(r.success){ OPS = r.operators || OPS; renderOperators(OPS); renderApps(A); toast('운영자가 제거됐어요'); }
     else toast(r.code==='protected'?'최초 관리자 계정은 제거할 수 없어요':'처리 실패');
   }).withFailureHandler(()=>toast('처리 실패. 다시 시도해주세요')).removeOperator(email);
+}
+
+function copyOpCode(code){
+  navigator.clipboard.writeText(code)
+    .then(()=>toast('🔑 접속코드 복사됨: ' + code))
+    .catch(()=>toast('복사 실패 — 코드: ' + code));
 }
 
 function toggleAllAppsCheck(master) {
@@ -2085,33 +2101,86 @@ function copyNotice(id) {
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
-google.script.run
-  .withSuccessHandler(function(res) {
-    if (res.allowed) {
-      myEmail = res.email || '';
-      document.getElementById('auth-overlay').style.display = 'none';
-      loadDashboard();
-      google.script.run.withSuccessHandler(u=>{webAppUrl=u;}).getWebAppUrl();
-      google.script.run.withSuccessHandler(function(ops){
-        OPS = ops || [];
-        var me = OPS.find(function(o){ return String(o.email).toLowerCase() === String(myEmail).toLowerCase(); });
-        myOpName = me ? me.name : '';
-      }).getOperators();
-    } else {
-      var title = document.getElementById('ao-title');
-      var sub = document.getElementById('ao-sub');
-      document.querySelector('#auth-overlay .ao-icon').textContent = '🚫';
-      title.textContent = '접근 권한이 없습니다';
-      sub.innerHTML = '운영진 계정으로만 접근할 수 있어요.<br>문의: capshinsmg@gmail.com'
-        + (res.email ? '<br><span class="ao-email">' + res.email + '</span>' : '');
-    }
-  })
-  .withFailureHandler(function(err) {
-    document.querySelector('#auth-overlay .ao-icon').textContent = '⚠️';
-    document.getElementById('ao-title').textContent = '인증 오류';
-    document.getElementById('ao-sub').textContent = '페이지를 새로고침 해주세요.';
-  })
-  .checkAuth();
+var SM_CODE_KEY = 'sm_op_code';
+
+// 부팅: 저장된 접속코드가 있으면 서버 세션 먼저 복원한 뒤 권한 확인
+function bootAuth(){
+  var saved = '';
+  try { saved = (localStorage.getItem(SM_CODE_KEY) || '').trim(); } catch(e){}
+  if (saved) {
+    google.script.run
+      .withSuccessHandler(function(){ runCheckAuth(); })
+      .withFailureHandler(function(){ runCheckAuth(); })
+      .checkCode(saved);
+  } else {
+    runCheckAuth();
+  }
+}
+
+function runCheckAuth(){
+  google.script.run
+    .withSuccessHandler(onAuthResult)
+    .withFailureHandler(function(){
+      document.querySelector('#auth-overlay .ao-icon').textContent = '⚠️';
+      document.getElementById('ao-title').textContent = '인증 오류';
+      document.getElementById('ao-sub').textContent = '페이지를 새로고침 해주세요.';
+    })
+    .checkAuth();
+}
+
+function onAuthResult(res){
+  if (res.allowed) {
+    myEmail = res.email || '';
+    document.getElementById('auth-overlay').style.display = 'none';
+    loadDashboard();
+    google.script.run.withSuccessHandler(u=>{webAppUrl=u;}).getWebAppUrl();
+    google.script.run.withSuccessHandler(function(ops){
+      OPS = ops || [];
+      var me = OPS.find(function(o){ return String(o.email).toLowerCase() === String(myEmail).toLowerCase(); });
+      myOpName = me ? me.name : '';
+    }).getOperators();
+  } else {
+    // 구글이 이메일을 안 넘겨준(=소유자 아닌 계정) 상태 → 접속코드 게이트 표시
+    document.querySelector('#auth-overlay .ao-icon').textContent = '🔑';
+    document.getElementById('ao-title').textContent = '운영자 접속코드 입력';
+    document.getElementById('ao-sub').innerHTML = '운영진에게 받은 <b>6자리 접속코드</b>를 입력해주세요.'
+      + (res.email ? '<br><span class="ao-email">' + res.email + '</span> 계정은 운영자가 아니에요.' : '')
+      + '<br>문의: capshinsmg@gmail.com';
+    document.getElementById('ao-code').style.display = 'block';
+    var inp = document.getElementById('ao-code-input');
+    if (inp) { inp.value = ''; inp.focus(); }
+  }
+}
+
+function submitCode(){
+  var inp = document.getElementById('ao-code-input');
+  var msg = document.getElementById('ao-code-msg');
+  var btn = document.getElementById('ao-code-btn');
+  var code = (inp.value || '').trim().toUpperCase();
+  if (code.length < 6) { msg.textContent = '6자리 코드를 정확히 입력해주세요.'; return; }
+  btn.disabled = true; btn.textContent = '확인 중...'; msg.textContent = '';
+  google.script.run
+    .withSuccessHandler(function(r){
+      btn.disabled = false; btn.textContent = '입장하기';
+      if (r && r.ok) {
+        try { localStorage.setItem(SM_CODE_KEY, code); } catch(e){}
+        document.getElementById('ao-code').style.display = 'none';
+        document.querySelector('#auth-overlay .ao-icon').textContent = '🔓';
+        document.getElementById('ao-title').textContent = '접속 확인 중...';
+        document.getElementById('ao-sub').textContent = '잠시만 기다려주세요.';
+        runCheckAuth();
+      } else {
+        msg.textContent = '❌ 유효하지 않은 코드예요. 다시 확인해주세요.';
+      }
+    })
+    .withFailureHandler(function(){
+      btn.disabled = false; btn.textContent = '입장하기';
+      msg.textContent = '오류가 발생했어요. 다시 시도해주세요.';
+    })
+    .checkCode(code);
+}
+
+bootAuth();
 </script>
 </body>
 </html>

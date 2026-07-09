@@ -13,31 +13,49 @@ var OPERATORS = [
 var INQUIRY_KAKAO_URL = 'https://open.kakao.com/o/ssuPwLBi';
 
 // ===== 운영자(로그인 권한 + 담당자) 관리 =====
-// 운영자 시트: 이메일(0) 이름(1) 추가일(2)
+// 운영자 시트: 이메일(0) 이름(1) 추가일(2) 코드(3)
 function getOrCreateOperatorSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName('운영자');
   if (!sheet) {
     sheet = ss.insertSheet('운영자');
-    var h = ['이메일', '이름', '추가일'];
+    var h = ['이메일', '이름', '추가일', '코드'];
     var r = sheet.getRange(1, 1, 1, h.length);
     r.setValues([h]); r.setFontWeight('bold'); r.setBackground('#5b5bd6'); r.setFontColor('white');
     // 하드코딩된 시드 운영자를 최초 1회 채워넣음
+    var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
     OPERATORS.forEach(function(o) {
-      sheet.appendRow([o.email, o.name, Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd')]);
+      sheet.appendRow([o.email, o.name, today, genOpCode_()]);
     });
+  } else if (String(sheet.getRange(1, 4).getValue() || '').trim() !== '코드') {
+    sheet.getRange(1, 4).setValue('코드');   // 구버전 시트에 접속코드 컬럼 추가
   }
   return sheet;
 }
 
-// 시트에서 운영자 목록 조회 (시트가 비었으면 시드 반환)
+// 운영자 접속코드 생성 (혼동되는 문자 0/O/1/I/L 제외한 6자리)
+function genOpCode_() {
+  var chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  var s = '';
+  for (var i = 0; i < 6; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+  return s;
+}
+
+// 시트에서 운영자 목록 조회 (코드 없는 기존 운영자는 자동 발급). 반환: {email,name,code}
 function getOperators_() {
   var sheet = getOrCreateOperatorSheet_();
   var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return OPERATORS.slice();
-  return data.slice(1)
-    .map(function(row) { return { email: String(row[0] || '').trim().toLowerCase(), name: String(row[1] || '').trim() }; })
-    .filter(function(o) { return o.email || o.name; });
+  if (data.length <= 1) return OPERATORS.map(function(o) { return { email: o.email, name: o.name, code: '' }; });
+  var out = [];
+  for (var i = 1; i < data.length; i++) {
+    var email = String(data[i][0] || '').trim().toLowerCase();
+    var name = String(data[i][1] || '').trim();
+    if (!email && !name) continue;
+    var code = String(data[i][3] || '').trim();
+    if (!code) { code = genOpCode_(); sheet.getRange(i + 1, 4).setValue(code); }  // 코드 없는 기존 운영자 백필
+    out.push({ email: email, name: name, code: code });
+  }
+  return out;
 }
 
 // 로그인 허용 여부: 시드 계정 또는 운영자 시트에 등록된 이메일
@@ -51,15 +69,45 @@ function isAllowed_(email) {
   } catch (e) { return false; }
 }
 
+// 현재 접속자 이메일 — 구글이 이메일을 안 넘겨줄 때(다른 Gmail 계정)는 접속코드 세션에서 복원
+function currentOperatorEmail_() {
+  var email = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();
+  if (email) return email;
+  try {
+    var key = Session.getTemporaryActiveUserKey();
+    if (key) {
+      var cached = CacheService.getScriptCache().get('opauth_' + key);
+      if (cached) return String(cached).trim().toLowerCase();
+    }
+  } catch (e) {}
+  return '';
+}
+
 function checkAuth() {
-  var email = Session.getActiveUser().getEmail();
+  var email = currentOperatorEmail_();
   return { email: email, allowed: isAllowed_(email) };
+}
+
+// 접속코드 검증 — 유효하면 이 브라우저 세션을 해당 운영자로 인증(6시간 캐시)
+function checkCode(code) {
+  code = String(code || '').trim().toUpperCase();
+  if (!code) return { ok: false };
+  var ops = getOperators_();
+  var match = null;
+  for (var i = 0; i < ops.length; i++) {
+    if (ops[i].code && String(ops[i].code).toUpperCase() === code) { match = ops[i]; break; }
+  }
+  if (!match) return { ok: false };
+  try {
+    var key = Session.getTemporaryActiveUserKey();
+    if (key) CacheService.getScriptCache().put('opauth_' + key, match.email, 21600);
+  } catch (e) {}
+  return { ok: true, name: match.name };
 }
 
 // 서버측 인증 가드 — 허용되지 않은 호출 차단
 function requireAuth_() {
-  var email = Session.getActiveUser().getEmail();
-  if (!isAllowed_(email)) {
+  if (!isAllowed_(currentOperatorEmail_())) {
     throw new Error('접근 권한이 없습니다.');
   }
 }
@@ -80,8 +128,9 @@ function addOperator(email, name) {
   var data = sheet.getDataRange().getValues();
   var dup = data.slice(1).some(function(row) { return String(row[0] || '').trim().toLowerCase() === email; });
   if (dup) return { success: false, code: 'dup' };
-  sheet.appendRow([email, name, Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd')]);
-  return { success: true, operators: getOperators_() };
+  var newCode = genOpCode_();
+  sheet.appendRow([email, name, Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd'), newCode]);
+  return { success: true, newCode: newCode, operators: getOperators_() };
 }
 
 // 운영자 제거 — 시드(하드코딩) 계정은 안전을 위해 제거 불가
