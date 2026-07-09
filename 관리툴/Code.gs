@@ -759,6 +759,37 @@ function getMembers() {
   return getMembers_();
 }
 
+// 성별 정규화: 남자/남성/남/M → '남', 여자/여성/여/F → '여'. 애매(둘다/없음)하면 원본 유지
+function normalizeGender_(raw) {
+  var s = String(raw == null ? '' : raw).trim();
+  if (!s) return '';
+  var hasM = s.indexOf('남') >= 0, hasF = s.indexOf('여') >= 0;
+  if (hasM && !hasF) return '남';
+  if (hasF && !hasM) return '여';
+  var low = s.toLowerCase();
+  if (/female|woman|^f$/.test(low)) return '여';   // female이 male을 포함하므로 여성 먼저 판별
+  if (/male|\bman\b|^m$/.test(low)) return '남';
+  return s;
+}
+
+// 나이 정규화: '27세'·'27살'·'만27' → 27, 4자리 출생연도·'97년생' → 만나이 계산. 애매하면 원본
+function normalizeAge_(raw) {
+  var s = String(raw == null ? '' : raw).trim();
+  if (!s) return '';
+  var CUR = new Date().getFullYear();
+  var yearMark = /년\s*생|생년/.test(s);
+  var m = s.match(/\d{1,4}/);
+  if (!m) return s;
+  var n = parseInt(m[0], 10);
+  if (n >= 1940 && n <= CUR - 5) return String(CUR - n);          // 1997 → 나이
+  if (yearMark && n < 100) {                                       // 97년생 → 나이
+    var by = (n <= (CUR % 100)) ? 2000 + n : 1900 + n;
+    return String(CUR - by);
+  }
+  if (n >= 10 && n <= 99) return String(n);                        // 27, 27세, 27살
+  return s;
+}
+
 function getMembers_() {
   const sheet = getSheet('회원목록');
   const data = sheet.getDataRange().getValues();
@@ -766,8 +797,8 @@ function getMembers_() {
   return data.slice(1).map((row, i) => ({
     id: i + 2,
     name: String(row[0] || ''),
-    age: String(row[1] || ''),
-    gender: String(row[2] || ''),
+    age: normalizeAge_(String(row[1] || '')),
+    gender: normalizeGender_(String(row[2] || '')),
     phone: normalizePhone_(String(row[3] || '')),
     location: String(row[4] || ''),
     hobby: String(row[5] || ''),
