@@ -148,6 +148,81 @@ function removeOperator(email) {
   return { success: true, operators: getOperators_() };
 }
 
+// ===== 텔레그램 알림 =====
+// 토큰·채팅ID는 Script Properties에만 저장 (공개 저장소에 노출 방지)
+function tgProps_() { return PropertiesService.getScriptProperties(); }
+
+function tgApi_(token, method, payload) {
+  var res = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/' + method, {
+    method: 'post', contentType: 'application/json',
+    payload: JSON.stringify(payload || {}), muteHttpExceptions: true
+  });
+  try { return JSON.parse(res.getContentText()); } catch (e) { return { ok: false, description: '응답 파싱 실패' }; }
+}
+
+function getTelegramSettings() {
+  requireAuth_();
+  var p = tgProps_();
+  return {
+    tokenSaved: !!p.getProperty('tgToken'),
+    chatId: p.getProperty('tgChatId') || '',
+    enabled: p.getProperty('tgEnabled') === 'true'
+  };
+}
+
+function saveTelegramSettings(token, chatId, enabled) {
+  requireAuth_();
+  var p = tgProps_();
+  token = String(token || '').trim();
+  if (token) p.setProperty('tgToken', token);   // 비워두면 기존 토큰 유지
+  p.setProperty('tgChatId', String(chatId || '').trim());
+  p.setProperty('tgEnabled', enabled ? 'true' : 'false');
+  return { success: true };
+}
+
+// 그룹에서 봇에게 /start 등을 보낸 뒤 호출 → 최근 대화의 chat_id 감지
+function telegramDetectChatId(tokenOverride) {
+  requireAuth_();
+  var token = String(tokenOverride || '').trim() || tgProps_().getProperty('tgToken') || '';
+  if (!token) return { success: false, message: '봇 토큰을 먼저 입력해주세요' };
+  var r = tgApi_(token, 'getUpdates', { limit: 50 });
+  if (!r.ok) return { success: false, message: '텔레그램 오류: ' + (r.description || '토큰을 확인해주세요') };
+  var found = null;
+  (r.result || []).reverse().some(function(u) {
+    var msg = u.message || u.channel_post || (u.my_chat_member && { chat: u.my_chat_member.chat });
+    if (msg && msg.chat) { found = msg.chat; return true; }
+    return false;
+  });
+  if (!found) return { success: false, message: '대화를 못 찾았어요. 그룹에서 /start 를 보낸 뒤 다시 시도해주세요' };
+  return { success: true, chatId: String(found.id), title: found.title || found.username || found.first_name || '' };
+}
+
+function testTelegram(tokenOverride, chatOverride) {
+  requireAuth_();
+  var token = String(tokenOverride || '').trim() || tgProps_().getProperty('tgToken') || '';
+  var chatId = String(chatOverride || '').trim() || tgProps_().getProperty('tgChatId') || '';
+  if (!token || !chatId) return { success: false, message: '토큰과 채팅 ID를 입력해주세요' };
+  var r = tgApi_(token, 'sendMessage', { chat_id: chatId, text: '🔔 소모임 관리툴 알림 테스트입니다. 이 메시지가 보이면 연동 성공!' });
+  return r.ok ? { success: true } : { success: false, message: r.description || '발송 실패' };
+}
+
+// 이벤트 발생 시 운영진 텔레그램 그룹으로 발송 — 실패해도 본 기능은 계속 동작
+function notifyTelegram_(text) {
+  try {
+    var p = tgProps_();
+    if (p.getProperty('tgEnabled') !== 'true') return;
+    var token = p.getProperty('tgToken'), chatId = p.getProperty('tgChatId');
+    if (!token || !chatId) return;
+    tgApi_(token, 'sendMessage', { chat_id: chatId, text: text, disable_web_page_preview: true });
+  } catch (e) { /* 알림 실패 무시 */ }
+}
+
+function maskPhone_(p) {
+  var d = normalizePhone_(p);
+  if (d.length < 8) return d;
+  return d.slice(0, 3) + '-****-' + d.slice(-4);
+}
+
 function fmtGasDate_(v) {
   if (!v) return '';
   if (v instanceof Date) return Utilities.formatDate(v, 'Asia/Seoul', 'yyyy-MM-dd HH:mm');
@@ -215,6 +290,35 @@ function doGet(e) {
         };
       });
     return ContentService.createTextOutput(JSON.stringify({ success: true, events: events, kakao: INQUIRY_KAKAO_URL }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  // 내 신청 확인 — 이름+연락처가 모두 일치하는 본인 신청만 반환, 톡방 링크는 '승인' 상태일 때만 노출
+  if (params && params.api === 'mystatus') {
+    const name = String(params.name || '').replace(/\s/g, '');
+    const phone = normalizePhone_(params.phone || '');
+    let apps = [];
+    if (name && phone) {
+      const evByName = {};
+      getEvents_().forEach(function(ev) { evByName[ev.name] = ev; });
+      const sheet = getSheet('모임신청대기');
+      if (sheet) {
+        const data = sheet.getDataRange().getValues();
+        for (var i = 1; i < data.length; i++) {
+          if (String(data[i][2] || '').replace(/\s/g, '') !== name) continue;
+          if (normalizePhone_(String(data[i][3] || '')) !== phone) continue;
+          var evName = String(data[i][1] || '');
+          var status = String(data[i][4] || '대기중');
+          var ev = evByName[evName];
+          apps.push({
+            eventName: evName,
+            korDate: ev ? fmtKorDate_(ev.date) : '',
+            status: status,
+            chatLink: (status === '승인' && ev) ? String(ev.chatLink || '') : ''
+          });
+        }
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: true, apps: apps }))
       .setMimeType(ContentService.MimeType.JSON);
   }
   if (params && params.apply) {
@@ -319,7 +423,7 @@ button:disabled{background:#aaa;cursor:not-allowed}
   <div id="dv" class="done">
     <div class="done-icon">🎉</div>
     <div class="done-title">신청이 완료됐어요!</div>
-    <div class="done-sub">운영진 확인 후<br>개별 연락드릴게요 😊</div>
+    <div class="done-sub">운영진 승인 후 홈페이지의<br><b>📋 내 신청 확인</b>에서 톡방 링크를 확인할 수 있어요 😊</div>
   </div>
 </div>
 <script>
@@ -391,6 +495,7 @@ function submitEventApplication(data) {
     ['취소', '거절'].indexOf(String(row[4])) === -1);
   if (isDup) return { success: false, message: 'already' };
   sheet.appendRow([Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm'), data.eventName, data.name, normalizePhone_(data.phone), '대기중']);
+  notifyTelegram_('📝 모임 신청 접수\n• 모임: ' + data.eventName + '\n• 신청자: ' + data.name + ' (' + maskPhone_(data.phone) + ')\n관리툴 → 모임 관리 → 신청자 관리에서 승인해주세요');
   return { success: true };
 }
 
@@ -453,14 +558,20 @@ function submitBoardLeaderApp(data) {
   if (!data.eventName || !data.category || !data.date1 || !data.location || !data.intro) {
     return { success: false, code: 'missing' };
   }
+  // 오픈채팅 링크: 있으면 형식 검증 (빈 값은 레거시 경로 호환으로 허용 — 홈페이지 폼에선 필수)
+  const chatLink = String(data.chatLink || '').trim();
+  if (chatLink && chatLink.indexOf('open.kakao.com') === -1) {
+    return { success: false, code: 'bad_link' };
+  }
   getOrCreateLeaderSheet_().appendRow([
     Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss'),
     v.member.name, v.member.phone,
     data.eventName, data.category,
     data.date1 || '', data.date2 || '', data.date3 || '',
     data.location, data.maxMembers || '', data.intro, data.materials || '',
-    '대기중'
+    '대기중', chatLink
   ]);
+  notifyTelegram_('💡 새 리더 신청\n• 모임: ' + data.eventName + ' (' + data.category + ')\n• 리더: ' + v.member.name + '\n• 1회차: ' + fmtKorDate_(data.date1) + (chatLink ? '\n• 톡방 링크 제출됨 ✅' : '') + '\n관리툴 → 리더신청에서 승인해주세요');
   return { success: true };
 }
 
@@ -904,7 +1015,8 @@ function getEvents_() {
     maxMembers: row[3],
     leader: String(row[4] || ''),
     status: String(row[5] || '모집중'),
-    description: String(row[6] || '')
+    description: String(row[6] || ''),
+    chatLink: String(row[7] || '')
   }));
 }
 
@@ -916,11 +1028,20 @@ function ensureEventDescCol_() {
   }
 }
 
+// 모임목록 8번째 열(톡방링크) 헤더 보장
+function ensureEventChatCol_() {
+  const sheet = getSheet('모임목록');
+  if (String(sheet.getRange(1, 8).getValue()) !== '톡방링크') {
+    sheet.getRange(1, 8).setValue('톡방링크').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
+  }
+}
+
 function addEvent(data) {
   requireAuth_();
   ensureEventDescCol_();
+  ensureEventChatCol_();
   getSheet('모임목록').appendRow([
-    data.name, data.date, data.location, data.maxMembers, data.leader, '모집중', data.description || ''
+    data.name, data.date, data.location, data.maxMembers, data.leader, '모집중', data.description || '', String(data.chatLink || '').trim()
   ]);
   return { success: true };
 }
@@ -941,6 +1062,10 @@ function updateEvent(rowId, data) {
   if (data.description !== undefined) {
     ensureEventDescCol_();
     sheet.getRange(rowId, 7).setValue(data.description);
+  }
+  if (data.chatLink !== undefined) {
+    ensureEventChatCol_();
+    sheet.getRange(rowId, 8).setValue(String(data.chatLink || '').trim());
   }
   // 모임명 변경 시 신청 내역의 모임명도 동기화
   if (oldName && data.name && oldName !== data.name) {
@@ -1022,6 +1147,83 @@ function countApproved_(eventName) {
     }
   }
   return Object.keys(seen).length;
+}
+
+// 대기중 신청 수 (자동 완료 알림용)
+function countPending_(eventName) {
+  var s = getSheet('모임신청대기');
+  if (!s) return 0;
+  var d = s.getDataRange().getValues(), n = 0;
+  for (var i = 1; i < d.length; i++) {
+    if (String(d[i][1]) === eventName && String(d[i][4]) === '대기중') n++;
+  }
+  return n;
+}
+
+// ===== 모임 상태 자동 전환 =====
+// 모임 날짜 문자열에서 회차별 Date 추출 ("yyyy-MM-dd HH:mm / yyyy-MM-dd HH:mm ..." 형태)
+function parseEventDates_(s) {
+  var out = [];
+  var re = /(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/g, m;
+  s = String(s || '');
+  while ((m = re.exec(s))) {
+    out.push(new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0)));
+  }
+  return out;
+}
+
+// 시간 경과에 따른 상태 자동 전환 (30분 트리거 + 관리툴 접속 시 실행)
+// - 모집중: 첫 회차 시작 시각이 지나면 → 승인 인원 0명이면 '완료', 있으면 '진행중'
+// - 진행중: 마지막 회차 날짜가 지나면(다음날 0시부터) → '완료'
+function autoUpdateEventStatuses() {
+  var sheet = getSheet('모임목록');
+  if (!sheet) return { success: false, changes: [] };
+  var data = sheet.getDataRange().getValues();
+  var now = new Date();
+  var changes = [];
+  for (var i = 1; i < data.length; i++) {
+    var name = String(data[i][0] || '');
+    if (!name) continue;
+    var status = String(data[i][5] || '모집중');
+    if (status === '완료') continue;
+    var dates = parseEventDates_(fmtGasDate_(data[i][1]));
+    if (!dates.length) continue;
+    var first = dates[0], last = dates[0];
+    dates.forEach(function(d) { if (d < first) first = d; if (d > last) last = d; });
+    var lastDayEnd = new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1);   // 마지막 회차 다음날 0시
+    var next = status, note = '';
+    if (status === '모집중' && now >= first) {
+      if (countApproved_(name) === 0) {
+        next = '완료';
+        var pend = countPending_(name);
+        note = pend ? ' (승인 0명·대기 ' + pend + '명 있음)' : ' (신청 0명)';
+      } else {
+        next = '진행중';
+      }
+    }
+    if (next === '진행중' && now >= lastDayEnd) next = '완료';
+    if (next !== status) {
+      sheet.getRange(i + 1, 6).setValue(next);
+      changes.push('• ' + name + ': ' + status + ' → ' + next + note);
+    }
+  }
+  if (changes.length) notifyTelegram_('⏱ 모임 상태 자동 변경\n' + changes.join('\n'));
+  return { success: true, changes: changes };
+}
+
+// 30분 주기 트리거 자동 설치 (관리툴 접속 시 확인) + 즉시 1회 실행해 화면과 시트를 맞춤
+function ensureAutoStatusTrigger() {
+  requireAuth_();
+  var installed = false;
+  var exists = ScriptApp.getProjectTriggers().some(function(t) {
+    return t.getHandlerFunction() === 'autoUpdateEventStatuses';
+  });
+  if (!exists) {
+    ScriptApp.newTrigger('autoUpdateEventStatuses').timeBased().everyMinutes(30).create();
+    installed = true;
+  }
+  var r = autoUpdateEventStatuses();
+  return { success: true, installed: installed, changes: r.changes || [] };
 }
 
 function addRegistration(data) {
@@ -1139,6 +1341,11 @@ function setAppVerifyStatus(rowId, status) {
 // 미배정 대기중 신청을 운영자들에게 라운드로빈 분배
 function autoAssignApps() {
   requireAuth_();
+  return autoAssignCore_();
+}
+
+// 내부용 — 가입신청 폼 트리거에서도 호출 (트리거 컨텍스트는 requireAuth_ 불가)
+function autoAssignCore_() {
   const sheet = getSheet('가입신청');
   if (!sheet) return { success: false, count: 0 };
   ensureAppExtraCols_(sheet);
@@ -1224,6 +1431,18 @@ function onMemberFormSubmit(e) {
     range.setFontColor('white');
   }
   sheet.appendRow([...e.values, '대기중']);
+  // 접수 즉시 담당자 자동 배정 + 운영진 텔레그램 알림
+  var assignee = '';
+  try {
+    autoAssignCore_();
+    assignee = String(sheet.getRange(sheet.getLastRow(), 11).getValue() || '');
+  } catch (err) {}
+  try {
+    var vals = e.values || [];
+    notifyTelegram_('🆕 새 가입신청\n• ' + (vals[1] || '?') + ' (' + normalizeAge_(vals[2] || '') + '/' + normalizeGender_(vals[3] || '') + ', ' + (vals[5] || '-') + ')'
+      + (assignee ? '\n• 담당: ' + assignee : '')
+      + '\n관리툴 → 가입신청에서 신원확인 후 승인해주세요');
+  } catch (err2) {}
 }
 
 // ===== 리더신청 관리 =====
@@ -1232,9 +1451,11 @@ function getOrCreateLeaderSheet_() {
   let target = ss.getSheetByName('리더신청');
   if (!target) {
     target = ss.insertSheet('리더신청');
-    const h = ['타임스탬프','이름','연락처','모임명','분야','1회차','2회차','3회차','장소','최대인원','모임소개','준비물','처리상태'];
+    const h = ['타임스탬프','이름','연락처','모임명','분야','1회차','2회차','3회차','장소','최대인원','모임소개','준비물','처리상태','오픈채팅링크'];
     const r = target.getRange(1, 1, 1, h.length);
     r.setValues([h]); r.setFontWeight('bold'); r.setBackground('#5b5bd6'); r.setFontColor('white');
+  } else if (String(target.getRange(1, 14).getValue() || '').trim() !== '오픈채팅링크') {
+    target.getRange(1, 14).setValue('오픈채팅링크').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
   }
   return target;
 }
@@ -1296,20 +1517,23 @@ function getLeaderApps() {
     maxSize: String(row[9] || ''),
     description: String(row[10] || ''),
     supplies: String(row[11] || ''),
-    status: String(row[12] || '대기중')
+    status: String(row[12] || '대기중'),
+    chatLink: String(row[13] || '')
   }));
 }
 
 function approveLeaderApp(rowId) {
   requireAuth_();
   const sheet = getSheet('리더신청');
-  const row = sheet.getRange(rowId, 1, 1, 13).getValues()[0];
+  const row = sheet.getRange(rowId, 1, 1, 14).getValues()[0];
   const eventSheet = getSheet('모임목록');
   const dates = [row[5], row[6], row[7]].filter(d => d && String(d).trim() !== '');
   // 회차별로 쪼개지 않고 한 모임으로 묶어 생성 — 한 번 신청 = 전 회차 참석
   const dateStr = dates.map(d => fmtGasDate_(d)).join(' / ');
   ensureEventDescCol_();
-  eventSheet.appendRow([row[3], dateStr, row[8], row[9], row[1], '모집중', row[10]]);
+  ensureEventChatCol_();
+  // 리더가 제출한 오픈채팅 링크(14열)를 모임목록 톡방링크(8열)로 복사
+  eventSheet.appendRow([row[3], dateStr, row[8], row[9], row[1], '모집중', row[10], String(row[13] || '').trim()]);
   sheet.getRange(rowId, 13).setValue('승인');
   return { success: true };
 }
@@ -1342,6 +1566,10 @@ function onLeaderFormSubmit(e) {
     range.setFontColor('white');
   }
   sheet.appendRow([...e.values, '대기중']);
+  try {
+    var vals = e.values || [];
+    notifyTelegram_('💡 새 리더 신청 (구글폼)\n• 모임: ' + (vals[3] || '?') + '\n• 리더: ' + (vals[1] || '?') + '\n관리툴 → 리더신청에서 승인해주세요');
+  } catch (err) {}
 }
 
 // 트리거 올바르게 재설정 (Script Editor에서 한 번만 실행)
