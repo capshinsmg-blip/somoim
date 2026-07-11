@@ -597,7 +597,11 @@ select.form-input{cursor:pointer}
     </div>
     <div class="form-group"><label class="form-label">리더</label><input class="form-input" id="e-leader" placeholder="홍길동"></div>
     <div class="form-group"><label class="form-label">모임 소개</label><textarea class="form-input" id="e-desc" rows="3" placeholder="어떤 모임인지 설명 (신청자 상세보기에 표시돼요)"></textarea></div>
-    <div class="form-group"><label class="form-label">💬 톡방 링크 <span style="color:#aaa;font-weight:400">(오픈채팅)</span></label><input class="form-input" id="e-chat" placeholder="https://open.kakao.com/o/..."><div style="font-size:11px;color:#888;margin-top:4px">승인된 신청자가 홈페이지 '내 신청 확인'에서 이 링크로 입장해요</div></div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2"><label class="form-label">💬 톡방 링크 <span style="color:#aaa;font-weight:400">(오픈채팅)</span></label><input class="form-input" id="e-chat" placeholder="https://open.kakao.com/o/..."></div>
+      <div class="form-group" style="flex:1"><label class="form-label">🔑 입장 비밀번호</label><input class="form-input" id="e-chatcode" maxlength="4" placeholder="4자"></div>
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:-8px;margin-bottom:12px">승인된 신청자가 홈페이지 '내 신청 확인'에서 이 링크·비밀번호로 입장해요</div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('addEvent')">취소</button>
       <button class="btn btn-primary" onclick="submitEvent()">등록</button>
@@ -631,7 +635,11 @@ select.form-input{cursor:pointer}
     <div class="form-group"><label class="form-label">최대 인원</label><input class="form-input" id="ee-max" type="number"></div>
     <div class="form-group"><label class="form-label">리더</label><input class="form-input" id="ee-leader"></div>
     <div class="form-group"><label class="form-label">모임 소개</label><textarea class="form-input" id="ee-desc" rows="3" placeholder="어떤 모임인지 설명 (신청자 상세보기에 표시돼요)"></textarea></div>
-    <div class="form-group"><label class="form-label">💬 톡방 링크 <span style="color:#aaa;font-weight:400">(오픈채팅)</span></label><input class="form-input" id="ee-chat" placeholder="https://open.kakao.com/o/..."><div style="font-size:11px;color:#888;margin-top:4px">승인된 신청자가 홈페이지 '내 신청 확인'에서 이 링크로 입장해요</div></div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2"><label class="form-label">💬 톡방 링크 <span style="color:#aaa;font-weight:400">(오픈채팅)</span></label><input class="form-input" id="ee-chat" placeholder="https://open.kakao.com/o/..."></div>
+      <div class="form-group" style="flex:1"><label class="form-label">🔑 입장 비밀번호</label><input class="form-input" id="ee-chatcode" maxlength="4" placeholder="4자"></div>
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:-8px;margin-bottom:12px">승인된 신청자가 홈페이지 '내 신청 확인'에서 이 링크·비밀번호로 입장해요</div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('editEvent')">취소</button>
       <button class="btn btn-primary" onclick="saveEventEdit()">저장</button>
@@ -1104,6 +1112,7 @@ function openLeaderDetail(id) {
       <div class="detail-row"><span class="detail-label">모임 소개</span><span class="detail-value">${a.description}</span></div>
       <div class="detail-row"><span class="detail-label">준비물</span><span class="detail-value">${a.supplies || '-'}</span></div>
       <div class="detail-row"><span class="detail-label">톡방 링크</span><span class="detail-value">${a.chatLink ? `<a href="${a.chatLink}" target="_blank" rel="noopener" style="color:#5b5bd6">${a.chatLink}</a>` : '<span style="color:#e67700">미제출 — 승인 후 모임 수정에서 채워주세요</span>'}</span></div>
+      <div class="detail-row"><span class="detail-label">입장 비밀번호</span><span class="detail-value">${a.chatCode ? `<b>${a.chatCode}</b>` : '<span style="color:#e67700">미제출</span>'}</span></div>
       <div class="detail-row"><span class="detail-label">처리상태</span><span class="detail-value">${bApp(a.status)}</span></div>
     </div>`;
   const isPending = a.status==='대기중';
@@ -1789,6 +1798,7 @@ function openEditEvent(id) {
   document.getElementById('ee-leader').value = e.leader||'';
   document.getElementById('ee-desc').value = e.description||'';
   document.getElementById('ee-chat').value = e.chatLink||'';
+  document.getElementById('ee-chatcode').value = e.chatCode||'';
   resetMapPicker('ee-mapframe');   // 이전 수정에서 남은 지도검색 패널 초기화
   openModal('editEvent');
 }
@@ -1804,7 +1814,8 @@ function saveEventEdit() {
     maxMembers: document.getElementById('ee-max').value,
     leader: document.getElementById('ee-leader').value.trim(),
     description: document.getElementById('ee-desc').value.trim(),
-    chatLink: document.getElementById('ee-chat').value.trim()
+    chatLink: document.getElementById('ee-chat').value.trim(),
+    chatCode: document.getElementById('ee-chatcode').value.trim()
   };
   if(!d.name||!date||!d.location){ toast('필수 항목을 입력해주세요'); return; }
   const btn = document.querySelector('#modal-editEvent .btn-primary');
@@ -1881,7 +1892,7 @@ function submitMember() {
 }
 
 function submitEvent() {
-  const d={name:$('e-name'),date:$('e-date'),location:composeLoc($('e-loc'),$('e-map')),maxMembers:$('e-max'),leader:$('e-leader'),description:$('e-desc'),chatLink:$('e-chat')};
+  const d={name:$('e-name'),date:$('e-date'),location:composeLoc($('e-loc'),$('e-map')),maxMembers:$('e-max'),leader:$('e-leader'),description:$('e-desc'),chatLink:$('e-chat'),chatCode:$('e-chatcode')};
   if(!d.name||!d.date||!d.location){toast('필수 항목을 입력해주세요');return;}
   google.script.run.withSuccessHandler(()=>{closeModal('addEvent');loadEventsTab();toast('모임이 등록됐어요 ✅');}).addEvent(d);
 }

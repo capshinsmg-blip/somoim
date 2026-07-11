@@ -313,7 +313,8 @@ function doGet(e) {
             eventName: evName,
             korDate: ev ? fmtKorDate_(ev.date) : '',
             status: status,
-            chatLink: (status === '승인' && ev) ? String(ev.chatLink || '') : ''
+            chatLink: (status === '승인' && ev) ? String(ev.chatLink || '') : '',
+            chatCode: (status === '승인' && ev) ? String(ev.chatCode || '') : ''
           });
         }
       }
@@ -563,13 +564,18 @@ function submitBoardLeaderApp(data) {
   if (chatLink && chatLink.indexOf('open.kakao.com') === -1) {
     return { success: false, code: 'bad_link' };
   }
+  // 입장 비밀번호: 있으면 4자 + 단순번호 차단 (홈페이지 폼에선 필수)
+  const chatCode = String(data.chatCode || '').trim();
+  if (chatCode && (chatCode.length !== 4 || chatCode === '1234' || /^(.)\1{3}$/.test(chatCode))) {
+    return { success: false, code: 'bad_code' };
+  }
   getOrCreateLeaderSheet_().appendRow([
     Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss'),
     v.member.name, v.member.phone,
     data.eventName, data.category,
     data.date1 || '', data.date2 || '', data.date3 || '',
     data.location, data.maxMembers || '', data.intro, data.materials || '',
-    '대기중', chatLink
+    '대기중', chatLink, chatCode
   ]);
   notifyTelegram_('💡 새 리더 신청\n• 모임: ' + data.eventName + ' (' + data.category + ')\n• 리더: ' + v.member.name + '\n• 1회차: ' + fmtKorDate_(data.date1) + (chatLink ? '\n• 톡방 링크 제출됨 ✅' : '') + '\n관리툴 → 리더신청에서 승인해주세요');
   return { success: true };
@@ -1016,7 +1022,8 @@ function getEvents_() {
     leader: String(row[4] || ''),
     status: String(row[5] || '모집중'),
     description: String(row[6] || ''),
-    chatLink: String(row[7] || '')
+    chatLink: String(row[7] || ''),
+    chatCode: String(row[8] || '')
   }));
 }
 
@@ -1028,11 +1035,14 @@ function ensureEventDescCol_() {
   }
 }
 
-// 모임목록 8번째 열(톡방링크) 헤더 보장
+// 모임목록 8번째 열(톡방링크)·9번째 열(입장코드) 헤더 보장
 function ensureEventChatCol_() {
   const sheet = getSheet('모임목록');
   if (String(sheet.getRange(1, 8).getValue()) !== '톡방링크') {
     sheet.getRange(1, 8).setValue('톡방링크').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
+  }
+  if (String(sheet.getRange(1, 9).getValue()) !== '입장코드') {
+    sheet.getRange(1, 9).setValue('입장코드').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
   }
 }
 
@@ -1041,7 +1051,7 @@ function addEvent(data) {
   ensureEventDescCol_();
   ensureEventChatCol_();
   getSheet('모임목록').appendRow([
-    data.name, data.date, data.location, data.maxMembers, data.leader, '모집중', data.description || '', String(data.chatLink || '').trim()
+    data.name, data.date, data.location, data.maxMembers, data.leader, '모집중', data.description || '', String(data.chatLink || '').trim(), String(data.chatCode || '').trim()
   ]);
   return { success: true };
 }
@@ -1066,6 +1076,10 @@ function updateEvent(rowId, data) {
   if (data.chatLink !== undefined) {
     ensureEventChatCol_();
     sheet.getRange(rowId, 8).setValue(String(data.chatLink || '').trim());
+  }
+  if (data.chatCode !== undefined) {
+    ensureEventChatCol_();
+    sheet.getRange(rowId, 9).setValue(String(data.chatCode || '').trim());
   }
   // 모임명 변경 시 신청 내역의 모임명도 동기화
   if (oldName && data.name && oldName !== data.name) {
@@ -1451,11 +1465,16 @@ function getOrCreateLeaderSheet_() {
   let target = ss.getSheetByName('리더신청');
   if (!target) {
     target = ss.insertSheet('리더신청');
-    const h = ['타임스탬프','이름','연락처','모임명','분야','1회차','2회차','3회차','장소','최대인원','모임소개','준비물','처리상태','오픈채팅링크'];
+    const h = ['타임스탬프','이름','연락처','모임명','분야','1회차','2회차','3회차','장소','최대인원','모임소개','준비물','처리상태','오픈채팅링크','입장코드'];
     const r = target.getRange(1, 1, 1, h.length);
     r.setValues([h]); r.setFontWeight('bold'); r.setBackground('#5b5bd6'); r.setFontColor('white');
-  } else if (String(target.getRange(1, 14).getValue() || '').trim() !== '오픈채팅링크') {
-    target.getRange(1, 14).setValue('오픈채팅링크').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
+  } else {
+    if (String(target.getRange(1, 14).getValue() || '').trim() !== '오픈채팅링크') {
+      target.getRange(1, 14).setValue('오픈채팅링크').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
+    }
+    if (String(target.getRange(1, 15).getValue() || '').trim() !== '입장코드') {
+      target.getRange(1, 15).setValue('입장코드').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
+    }
   }
   return target;
 }
@@ -1518,22 +1537,23 @@ function getLeaderApps() {
     description: String(row[10] || ''),
     supplies: String(row[11] || ''),
     status: String(row[12] || '대기중'),
-    chatLink: String(row[13] || '')
+    chatLink: String(row[13] || ''),
+    chatCode: String(row[14] || '')
   }));
 }
 
 function approveLeaderApp(rowId) {
   requireAuth_();
   const sheet = getSheet('리더신청');
-  const row = sheet.getRange(rowId, 1, 1, 14).getValues()[0];
+  const row = sheet.getRange(rowId, 1, 1, 15).getValues()[0];
   const eventSheet = getSheet('모임목록');
   const dates = [row[5], row[6], row[7]].filter(d => d && String(d).trim() !== '');
   // 회차별로 쪼개지 않고 한 모임으로 묶어 생성 — 한 번 신청 = 전 회차 참석
   const dateStr = dates.map(d => fmtGasDate_(d)).join(' / ');
   ensureEventDescCol_();
   ensureEventChatCol_();
-  // 리더가 제출한 오픈채팅 링크(14열)를 모임목록 톡방링크(8열)로 복사
-  eventSheet.appendRow([row[3], dateStr, row[8], row[9], row[1], '모집중', row[10], String(row[13] || '').trim()]);
+  // 리더가 제출한 오픈채팅 링크(14열)·입장코드(15열)를 모임목록 8·9열로 복사
+  eventSheet.appendRow([row[3], dateStr, row[8], row[9], row[1], '모집중', row[10], String(row[13] || '').trim(), String(row[14] || '').trim()]);
   sheet.getRange(rowId, 13).setValue('승인');
   return { success: true };
 }
