@@ -19,16 +19,21 @@ function getOrCreateOperatorSheet_() {
   var sheet = ss.getSheetByName('운영자');
   if (!sheet) {
     sheet = ss.insertSheet('운영자');
-    var h = ['이메일', '이름', '추가일', '코드'];
+    var h = ['이메일', '이름', '추가일', '코드', '배분'];
     var r = sheet.getRange(1, 1, 1, h.length);
     r.setValues([h]); r.setFontWeight('bold'); r.setBackground('#5b5bd6'); r.setFontColor('white');
-    // 하드코딩된 시드 운영자를 최초 1회 채워넣음
+    // 하드코딩된 시드 운영자를 최초 1회 채워넣음 (배분 기본 1)
     var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
     OPERATORS.forEach(function(o) {
-      sheet.appendRow([o.email, o.name, today, genOpCode_()]);
+      sheet.appendRow([o.email, o.name, today, genOpCode_(), 1]);
     });
-  } else if (String(sheet.getRange(1, 4).getValue() || '').trim() !== '코드') {
-    sheet.getRange(1, 4).setValue('코드');   // 구버전 시트에 접속코드 컬럼 추가
+  } else {
+    if (String(sheet.getRange(1, 4).getValue() || '').trim() !== '코드') {
+      sheet.getRange(1, 4).setValue('코드');   // 구버전 시트에 접속코드 컬럼 추가
+    }
+    if (String(sheet.getRange(1, 5).getValue() || '').trim() !== '배분') {
+      sheet.getRange(1, 5).setValue('배분').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');   // 구버전 시트에 배분(가중치) 컬럼 추가
+    }
   }
   return sheet;
 }
@@ -45,7 +50,7 @@ function genOpCode_() {
 function getOperators_() {
   var sheet = getOrCreateOperatorSheet_();
   var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return OPERATORS.map(function(o) { return { email: o.email, name: o.name, code: '' }; });
+  if (data.length <= 1) return OPERATORS.map(function(o) { return { email: o.email, name: o.name, code: '', weight: 1 }; });
   var out = [];
   for (var i = 1; i < data.length; i++) {
     var email = String(data[i][0] || '').trim().toLowerCase();
@@ -53,7 +58,10 @@ function getOperators_() {
     if (!email && !name) continue;
     var code = String(data[i][3] || '').trim();
     if (!code) { code = genOpCode_(); sheet.getRange(i + 1, 4).setValue(code); }  // 코드 없는 기존 운영자 백필
-    out.push({ email: email, name: name, code: code });
+    // 배분(가중치): 빈칸이면 기본 1, 명시적 0이면 자동배정 제외
+    var raw = String(data[i][4] == null ? '' : data[i][4]).trim();
+    var weight = raw === '' ? 1 : Math.max(0, Math.floor(Number(raw) || 0));
+    out.push({ email: email, name: name, code: code, weight: weight });
   }
   return out;
 }
@@ -129,8 +137,24 @@ function addOperator(email, name) {
   var dup = data.slice(1).some(function(row) { return String(row[0] || '').trim().toLowerCase() === email; });
   if (dup) return { success: false, code: 'dup' };
   var newCode = genOpCode_();
-  sheet.appendRow([email, name, Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd'), newCode]);
+  sheet.appendRow([email, name, Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd'), newCode, 1]);
   return { success: true, newCode: newCode, operators: getOperators_() };
+}
+
+// 운영자별 배분(가중치) 설정 — 0=자동배정 제외, 1=기본, 2·3…=더 많이 받음
+function setOperatorWeight(email, weight) {
+  requireAuth_();
+  email = String(email || '').trim().toLowerCase();
+  var w = Math.max(0, Math.min(9, Math.floor(Number(weight) || 0)));
+  var sheet = getOrCreateOperatorSheet_();
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0] || '').trim().toLowerCase() === email) {
+      sheet.getRange(i + 1, 5).setValue(w);
+      return { success: true, operators: getOperators_() };
+    }
+  }
+  return { success: false, code: 'not_found' };
 }
 
 // 운영자 제거 — 시드(하드코딩) 계정은 안전을 위해 제거 불가
@@ -1364,9 +1388,13 @@ function autoAssignCore_() {
   if (!sheet) return { success: false, count: 0 };
   ensureAppExtraCols_(sheet);
   const data = sheet.getDataRange().getValues();
-  const names = getOperators_().map(function(o) { return o.name; });
+  // 배분(가중치) 0인 운영자는 자동배정 대상에서 제외
+  const ops = getOperators_().filter(function(o) { return o.weight > 0; });
+  const names = ops.map(function(o) { return o.name; });
   if (!names.length) return { success: false, count: 0 };
-  // 기존 배정 건수를 세서 적게 가진 운영자부터 이어서 분배
+  const weight = {};
+  ops.forEach(function(o) { weight[o.name] = o.weight; });
+  // 기존 배정 건수를 세서 가중치 대비 적게 가진 운영자부터 이어서 분배
   const counts = {};
   names.forEach(function(n) { counts[n] = 0; });
   data.slice(1).forEach(function(row) {
@@ -1377,7 +1405,10 @@ function autoAssignCore_() {
   data.slice(1).forEach(function(row, i) {
     if (String(row[9] || '대기중') !== '대기중') return;
     if (String(row[10] || '')) return;
-    const next = names.slice().sort(function(a, b) { return counts[a] - counts[b]; })[0];
+    // count/weight 비율이 가장 낮은 운영자에게 배정 (가중치 높을수록 더 많이 받음)
+    const next = names.slice().sort(function(a, b) {
+      return (counts[a] / weight[a]) - (counts[b] / weight[b]);
+    })[0];
     sheet.getRange(i + 2, 11).setValue(next);
     counts[next]++;
     assigned++;
@@ -1423,6 +1454,45 @@ function rejectApplication(rowId) {
   return { success: true };
 }
 
+// 폼 제출 이벤트에서 응답 값 배열 추출
+// - 시트 응답 트리거: e.values 있음 (타임스탬프 포함)
+// - 폼(Form) 직접 트리거: e.values 없음 → e.response(FormResponse)에서 순서대로 뽑고 타임스탬프를 앞에 붙임
+function formEventValues_(e) {
+  if (e && e.values && e.values.length) return e.values;
+  if (e && e.response && e.response.getItemResponses) {
+    var ts = e.response.getTimestamp ? e.response.getTimestamp() : new Date();
+    var arr = [Utilities.formatDate(ts, 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss')];
+    e.response.getItemResponses().forEach(function(ir) {
+      var r = ir.getResponse();
+      arr.push(Array.isArray(r) ? r.join(', ') : String(r == null ? '' : r));
+    });
+    return arr;
+  }
+  if (e && e.namedValues) {
+    // 최후 수단: namedValues(순서 보장 안 됨)라도 있으면 값만 펼침
+    return Object.keys(e.namedValues).map(function(k) { return String(e.namedValues[k]); });
+  }
+  return [];
+}
+
+// 가입신청 중복 접수 여부 — 최근 5분 이내 같은 이름+정규화 전화번호가 이미 있으면 중복으로 판단
+// (이름=1열, 연락처=5열 / vals 0-based: 이름 vals[1], 연락처 vals[4])
+function isDuplicateApplication_(sheet, vals) {
+  var name = String(vals[1] || '').replace(/\s/g, '');
+  var phone = normalizePhone_(vals[4] || '');
+  if (!name && !phone) return false;
+  var data = sheet.getDataRange().getValues();
+  var now = new Date().getTime();
+  for (var i = data.length - 1; i >= 1; i--) {
+    var rowTs = data[i][0] ? new Date(data[i][0]).getTime() : 0;
+    if (rowTs && (now - rowTs) > 5 * 60 * 1000) break;  // 5분 넘게 지난 과거 행은 검사 중단
+    var rName = String(data[i][1] || '').replace(/\s/g, '');
+    var rPhone = normalizePhone_(data[i][4] || '');
+    if (rName === name && rPhone === phone) return true;
+  }
+  return false;
+}
+
 // 가입신청 폼 트리거
 function onMemberFormSubmit(e) {
   // 리더신청 폼에서 잘못 호출된 경우 차단
@@ -1444,7 +1514,14 @@ function onMemberFormSubmit(e) {
     range.setBackground('#5b5bd6');
     range.setFontColor('white');
   }
-  sheet.appendRow([...e.values, '대기중']);
+  var vals = formEventValues_(e);
+  // 중복 접수 방어 — 트리거가 두 번 발동해도(폼+시트 이중 등록 등) 같은 신청이 두 번 기록되지 않도록
+  // 최근 접수분 중 이름+정규화 전화번호가 같으면 건너뜀 (0102030201 == 102030201 로 매칭됨)
+  if (isDuplicateApplication_(sheet, vals)) {
+    Logger.log('onMemberFormSubmit 중복 접수 무시: ' + (vals[1] || '') + ' / ' + (vals[4] || ''));
+    return;
+  }
+  sheet.appendRow([...vals, '대기중']);
   // 접수 즉시 담당자 자동 배정 + 운영진 텔레그램 알림
   var assignee = '';
   try {
@@ -1452,7 +1529,6 @@ function onMemberFormSubmit(e) {
     assignee = String(sheet.getRange(sheet.getLastRow(), 11).getValue() || '');
   } catch (err) {}
   try {
-    var vals = e.values || [];
     notifyTelegram_('🆕 새 가입신청\n• ' + (vals[1] || '?') + ' (' + normalizeAge_(vals[2] || '') + '/' + normalizeGender_(vals[3] || '') + ', ' + (vals[5] || '-') + ')'
       + (assignee ? '\n• 담당: ' + assignee : '')
       + '\n관리툴 → 가입신청에서 신원확인 후 승인해주세요');
@@ -1542,6 +1618,30 @@ function getLeaderApps() {
   }));
 }
 
+// 기수 표기 '(N기)' 제거 후 순수 모임명 반환
+function stripGeneration_(name) {
+  return String(name || '').replace(/\s*\(\d+기\)\s*$/, '').trim();
+}
+
+// 같은 리더 + 같은 모임명이 모임목록에 이미 있으면 다음 기수를 붙여 유니크한 이름 생성
+// (상태 무관 — 완료된 모임명과도 겹치면 옛 신청자가 딸려오므로 전체 대상 검사)
+function makeUniqueEventName_(rawName, leader) {
+  const baseName = stripGeneration_(rawName);
+  const events = getEvents_();
+  const same = events.filter(function(e) {
+    return stripGeneration_(e.name) === baseName && String(e.leader).trim() === leader;
+  });
+  if (same.length === 0) return baseName;
+  // 기존 최대 기수 다음 번호 부여 (기수 없는 최초 모임은 1기로 간주)
+  let maxGen = 1;
+  same.forEach(function(e) {
+    const m = String(e.name).match(/\((\d+)기\)\s*$/);
+    const g = m ? Number(m[1]) : 1;
+    if (g > maxGen) maxGen = g;
+  });
+  return baseName + ' (' + (maxGen + 1) + '기)';
+}
+
 function approveLeaderApp(rowId) {
   requireAuth_();
   const sheet = getSheet('리더신청');
@@ -1552,8 +1652,10 @@ function approveLeaderApp(rowId) {
   const dateStr = dates.map(d => fmtGasDate_(d)).join(' / ');
   ensureEventDescCol_();
   ensureEventChatCol_();
+  // 같은 리더가 같은 모임명으로 재개설 시 기존 신청자가 딸려오지 않도록 기수(2기,3기…)를 붙여 구분
+  const eventName = makeUniqueEventName_(String(row[3]).trim(), String(row[1]).trim());
   // 리더가 제출한 오픈채팅 링크(14열)·입장코드(15열)를 모임목록 8·9열로 복사
-  eventSheet.appendRow([row[3], dateStr, row[8], row[9], row[1], '모집중', row[10], String(row[13] || '').trim(), String(row[14] || '').trim()]);
+  eventSheet.appendRow([eventName, dateStr, row[8], row[9], row[1], '모집중', row[10], String(row[13] || '').trim(), String(row[14] || '').trim()]);
   sheet.getRange(rowId, 13).setValue('승인');
   return { success: true };
 }
@@ -1585,9 +1687,9 @@ function onLeaderFormSubmit(e) {
     range.setBackground('#5b5bd6');
     range.setFontColor('white');
   }
-  sheet.appendRow([...e.values, '대기중']);
+  var vals = formEventValues_(e);
+  sheet.appendRow([...vals, '대기중']);
   try {
-    var vals = e.values || [];
     notifyTelegram_('💡 새 리더 신청 (구글폼)\n• 모임: ' + (vals[3] || '?') + '\n• 리더: ' + (vals[1] || '?') + '\n관리툴 → 리더신청에서 승인해주세요');
   } catch (err) {}
 }
@@ -1597,8 +1699,10 @@ function setupTriggers() {
   requireAuth_();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // 기존 on_form_submit 트리거 전부 삭제
-  ScriptApp.getUserTriggers(ss).forEach(function(t) {
+  // 기존 폼제출 트리거 전부 삭제
+  // getProjectTriggers()로 조회 — forForm()으로 만든 트리거는 폼에 연결돼 있어
+  // getUserTriggers(ss)로는 잡히지 않기 때문(중복 누적의 원인)
+  ScriptApp.getProjectTriggers().forEach(function(t) {
     if (t.getEventType() === ScriptApp.EventType.ON_FORM_SUBMIT) {
       ScriptApp.deleteTrigger(t);
       Logger.log('기존 트리거 삭제: ' + t.getHandlerFunction());

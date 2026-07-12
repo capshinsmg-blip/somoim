@@ -679,7 +679,7 @@ select.form-input{cursor:pointer}
 <div id="modal-operators" class="modal-overlay">
   <div class="modal" style="max-width:460px">
     <div class="modal-title">👤 운영자 관리</div>
-    <p style="font-size:12.5px;color:#888;line-height:1.6;margin-bottom:14px">운영자로 등록하면 <b>6자리 접속코드</b>가 자동 발급돼요. 아래 목록에서 코드를 복사해 운영자에게 전달하면, 운영자는 <b>관리툴 주소 + 접속코드</b>로 로그인할 수 있어요.<br>이메일은 담당자 배정·구분에 쓰여요(정확히 입력).</p>
+    <p style="font-size:12.5px;color:#888;line-height:1.6;margin-bottom:14px">운영자로 등록하면 <b>6자리 접속코드</b>가 자동 발급돼요. 아래 목록에서 코드를 복사해 운영자에게 전달하면, 운영자는 <b>관리툴 주소 + 접속코드</b>로 로그인할 수 있어요.<br>이메일은 담당자 배정·구분에 쓰여요(정확히 입력).<br>📊 <b>자동배정 배분</b>: 새 가입신청을 운영자에게 나눠주는 비율이에요. <b>제외</b>는 자동배정에서 빠지고, <b>2배·3배</b>는 그만큼 더 많이 받아요.</p>
     <div class="form-row">
       <div class="form-group"><label class="form-label">구글 이메일 *</label><input class="form-input" id="op-email" type="email" placeholder="hong@gmail.com"></div>
       <div class="form-group"><label class="form-label">표시 이름 *</label><input class="form-input" id="op-name" placeholder="홍길동"></div>
@@ -911,11 +911,19 @@ function renderOperators(list) {
     const safeEmail = String(o.email).replace(/'/g,"\\'");
     const code = o.code || '—';
     const safeCode = String(code).replace(/'/g,"\\'");
+    const w = (o.weight==null?1:o.weight);
+    const wLabel = w===0 ? '<span style="color:#c92a2a;font-weight:700">제외</span>' : (w===1 ? '기본' : w+'배');
     return `<div style="display:flex;align-items:center;gap:8px;background:#f8f8fc;border-radius:8px;padding:8px 12px">
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;font-size:13px">${o.name}${isMe?' <span style="color:#5b5bd6;font-size:11px">(나)</span>':''}</div>
         <div style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.email}</div>
         <div style="font-size:11px;margin-top:3px;color:#5b46c4">🔑 접속코드 <b style="font-family:monospace;letter-spacing:1px">${code}</b><a href="#" onclick="copyOpCode('${safeCode}');return false" style="color:#5b5bd6;text-decoration:none;margin-left:6px;font-weight:600">복사</a></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+          <span style="font-size:11px;color:#888">자동배정 배분</span>
+          <button class="btn btn-sm" style="font-size:12px;padding:1px 8px;line-height:1.4" onclick="setOpWeight('${safeEmail}',${w-1})">−</button>
+          <b style="font-size:12px;min-width:34px;text-align:center">${wLabel}</b>
+          <button class="btn btn-sm" style="font-size:12px;padding:1px 8px;line-height:1.4" onclick="setOpWeight('${safeEmail}',${w+1})">+</button>
+        </div>
       </div>
       <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;background:#fff5f5;color:#c92a2a;border:1px solid #ffd0d0" onclick="removeOperatorUI('${safeEmail}')">제거</button>
     </div>`;
@@ -946,6 +954,15 @@ function removeOperatorUI(email) {
     if(r.success){ OPS = r.operators || OPS; renderOperators(OPS); renderApps(A); toast('운영자가 제거됐어요'); }
     else toast(r.code==='protected'?'최초 관리자 계정은 제거할 수 없어요':'처리 실패');
   }).withFailureHandler(()=>toast('처리 실패. 다시 시도해주세요')).removeOperator(email);
+}
+
+// 자동배정 배분(가중치) 조절 — 0=제외, 1=기본, 2·3…=더 많이 받음 (0~9)
+function setOpWeight(email, weight) {
+  if(weight<0 || weight>9) return;
+  google.script.run.withSuccessHandler(r=>{
+    if(r.success){ OPS = r.operators || OPS; renderOperators(OPS); }
+    else toast('처리 실패');
+  }).withFailureHandler(()=>toast('처리 실패. 다시 시도해주세요')).setOperatorWeight(email, weight);
 }
 
 function copyOpCode(code){
