@@ -593,7 +593,8 @@ function submitBoardLeaderApp(data) {
   if (chatCode && (chatCode.length !== 4 || chatCode === '1234' || /^(.)\1{3}$/.test(chatCode))) {
     return { success: false, code: 'bad_code' };
   }
-  getOrCreateLeaderSheet_().appendRow([
+  const leaderSheet = getOrCreateLeaderSheet_();
+  leaderSheet.appendRow([
     Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss'),
     v.member.name, v.member.phone,
     data.eventName, data.category,
@@ -601,6 +602,7 @@ function submitBoardLeaderApp(data) {
     data.location, data.maxMembers || '', data.intro, data.materials || '',
     '대기중', chatLink, chatCode
   ]);
+  setTextCell_(leaderSheet.getRange(leaderSheet.getLastRow(), 15), chatCode);  // 입장코드 앞자리 0 보존
   notifyTelegram_('💡 새 리더 신청\n• 모임: ' + data.eventName + ' (' + data.category + ')\n• 리더: ' + v.member.name + '\n• 1회차: ' + fmtKorDate_(data.date1) + (chatLink ? '\n• 톡방 링크 제출됨 ✅' : '') + '\n관리툴 → 리더신청에서 승인해주세요');
   return { success: true };
 }
@@ -1059,6 +1061,11 @@ function ensureEventDescCol_() {
   }
 }
 
+// 앞자리 0 보존: 셀을 텍스트(@) 형식으로 지정한 뒤 문자열로 기록 (0123이 123으로 변환되는 것 방지)
+function setTextCell_(range, val) {
+  range.setNumberFormat('@').setValue(String(val == null ? '' : val));
+}
+
 // 모임목록 8번째 열(톡방링크)·9번째 열(입장코드) 헤더 보장
 function ensureEventChatCol_() {
   const sheet = getSheet('모임목록');
@@ -1068,15 +1075,19 @@ function ensureEventChatCol_() {
   if (String(sheet.getRange(1, 9).getValue()) !== '입장코드') {
     sheet.getRange(1, 9).setValue('입장코드').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
   }
+  // 입장코드 앞자리 0 보존: 데이터 영역을 텍스트 형식으로 강제
+  if (sheet.getMaxRows() > 1) sheet.getRange(2, 9, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
 }
 
 function addEvent(data) {
   requireAuth_();
   ensureEventDescCol_();
   ensureEventChatCol_();
-  getSheet('모임목록').appendRow([
+  const evSheet = getSheet('모임목록');
+  evSheet.appendRow([
     data.name, data.date, data.location, data.maxMembers, data.leader, '모집중', data.description || '', String(data.chatLink || '').trim(), String(data.chatCode || '').trim()
   ]);
+  setTextCell_(evSheet.getRange(evSheet.getLastRow(), 9), String(data.chatCode || '').trim());  // 입장코드 앞자리 0 보존
   return { success: true };
 }
 
@@ -1103,7 +1114,7 @@ function updateEvent(rowId, data) {
   }
   if (data.chatCode !== undefined) {
     ensureEventChatCol_();
-    sheet.getRange(rowId, 9).setValue(String(data.chatCode || '').trim());
+    setTextCell_(sheet.getRange(rowId, 9), String(data.chatCode || '').trim());  // 입장코드 앞자리 0 보존
   }
   // 모임명 변경 시 신청 내역의 모임명도 동기화
   if (oldName && data.name && oldName !== data.name) {
@@ -1656,6 +1667,7 @@ function approveLeaderApp(rowId) {
   const eventName = makeUniqueEventName_(String(row[3]).trim(), String(row[1]).trim());
   // 리더가 제출한 오픈채팅 링크(14열)·입장코드(15열)를 모임목록 8·9열로 복사
   eventSheet.appendRow([eventName, dateStr, row[8], row[9], row[1], '모집중', row[10], String(row[13] || '').trim(), String(row[14] || '').trim()]);
+  setTextCell_(eventSheet.getRange(eventSheet.getLastRow(), 9), String(row[14] || '').trim());  // 입장코드 앞자리 0 보존
   sheet.getRange(rowId, 13).setValue('승인');
   return { success: true };
 }
