@@ -1029,6 +1029,53 @@ function updateMemberStatus(rowId, status) {
   return { success: true };
 }
 
+// ===== 중복 회원 정리 =====
+// 중복 판정 키: 정규화 전화번호 (전화 없으면 공백 제거 이름)
+function memberDupKey_(m) {
+  return normalizePhone_(m.phone) || ('name:' + String(m.name || '').replace(/\s/g, ''));
+}
+
+// 중복 회원 그룹 조회 — 같은 사람이 2행 이상인 그룹만 반환
+function findDuplicateMembers() {
+  requireAuth_();
+  var map = {};
+  getMembers_().forEach(function(m) {
+    var key = memberDupKey_(m);
+    if (!key || key === 'name:') return;
+    (map[key] = map[key] || []).push(m);
+  });
+  var groups = [];
+  Object.keys(map).forEach(function(k) {
+    if (map[k].length > 1) {
+      groups.push(map[k].map(function(m) {
+        return { id: m.id, name: m.name, phone: m.phone, joinDate: m.joinDate, status: m.status, flagged: m.flagged, note: m.note };
+      }));
+    }
+  });
+  return groups;
+}
+
+// 중복 회원 정리 — 각 그룹에서 1행만 남기고 삭제
+// 유지 우선순위: 지인표시·특이사항·상태변경(제재 등)이 있는 행 > 가장 위(먼저 등록된) 행
+function cleanupDuplicateMembers() {
+  requireAuth_();
+  var groups = findDuplicateMembers();
+  var sheet = getSheet('회원목록');
+  var toDelete = [];
+  groups.forEach(function(g) {
+    var scored = g.map(function(m) {
+      var score = (m.flagged ? 2 : 0) + (m.note ? 1 : 0) + (m.status !== '활성' ? 2 : 0);
+      return { id: m.id, score: score };
+    });
+    // 점수 높은 행 유지, 동점이면 행 번호가 작은(먼저 등록된) 행 유지
+    scored.sort(function(a, b) { return (b.score - a.score) || (a.id - b.id); });
+    scored.slice(1).forEach(function(m) { toDelete.push(m.id); });
+  });
+  // 아래에서부터 삭제해 행 밀림 방지
+  toDelete.sort(function(a, b) { return b - a; }).forEach(function(r) { sheet.deleteRow(r); });
+  return { success: true, removed: toDelete.length, groups: groups.length };
+}
+
 // ===== 모임 관리 =====
 function getEvents() {
   requireAuth_();
@@ -1427,36 +1474,57 @@ function autoAssignCore_() {
   return { success: true, count: assigned };
 }
 
+// 이미 회원목록에 있는 사람인지 — 정규화 전화번호 우선, 전화 없으면 공백 제거 이름으로 비교
+function memberExists_(name, phone) {
+  var np = normalizePhone_(phone);
+  var nn = String(name || '').replace(/\s/g, '');
+  return getMembers_().some(function(m) {
+    if (np) return normalizePhone_(m.phone) === np;
+    return nn && m.name.replace(/\s/g, '') === nn;
+  });
+}
+
 function approveApplication(rowId) {
   requireAuth_();
   const sheet = getSheet('가입신청');
   const row = sheet.getRange(rowId, 1, 1, 10).getValues()[0];
-  getSheet('회원목록').appendRow([
-    row[1], row[2], row[3], normalizePhone_(row[4]), row[5], row[6],
-    Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd'),
-    '활성'
-  ]);
+  // 이중 클릭·중복 호출로 같은 신청이 두 번 승인되는 것 방지
+  if (String(row[9]) !== '대기중') return { success: false, message: 'already' };
+  // 이미 회원이면(중복 신청 승인 등) 회원목록에 다시 추가하지 않고 상태만 승인 처리
+  const existed = memberExists_(row[1], row[4]);
+  if (!existed) {
+    getSheet('회원목록').appendRow([
+      row[1], row[2], row[3], normalizePhone_(row[4]), row[5], row[6],
+      Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd'),
+      '활성'
+    ]);
+  }
   sheet.getRange(rowId, 10).setValue('승인');
-  return { success: true };
+  return { success: true, existed: existed };
 }
 
 function bulkApproveApplications(rowIds) {
   requireAuth_();
   const sheet = getSheet('가입신청');
   const memberSheet = getSheet('회원목록');
-  let count = 0;
+  let count = 0, skipped = 0;
   rowIds.forEach(function(rowId) {
     const row = sheet.getRange(rowId, 1, 1, 10).getValues()[0];
     if (String(row[9]) !== '대기중') return;
-    memberSheet.appendRow([
-      row[1], row[2], row[3], normalizePhone_(row[4]), row[5], row[6],
-      Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd'),
-      '활성'
-    ]);
+    // 이미 회원이면 추가 생략 (같은 사람의 중복 신청을 함께 선택해도 한 번만 등록됨)
+    if (memberExists_(row[1], row[4])) {
+      skipped++;
+    } else {
+      memberSheet.appendRow([
+        row[1], row[2], row[3], normalizePhone_(row[4]), row[5], row[6],
+        Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd'),
+        '활성'
+      ]);
+    }
     sheet.getRange(rowId, 10).setValue('승인');
     count++;
   });
-  return { success: true, count: count };
+  return { success: true, count: count, skipped: skipped };
 }
 
 function rejectApplication(rowId) {

@@ -263,7 +263,10 @@ select.form-input{cursor:pointer}
     <div class="section">
       <div class="section-header">
         <div class="section-title">👥 회원 목록 <span id="member-count" style="font-size:13px;font-weight:600;color:#5b5bd6;margin-left:4px"></span></div>
-        <button class="btn btn-primary" onclick="openModal('addMember')">+ 직접 등록</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="cleanupDupMembersUI()">🧹 중복 정리</button>
+          <button class="btn btn-primary" onclick="openModal('addMember')">+ 직접 등록</button>
+        </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
         <input type="text" class="search-bar" style="flex:1;min-width:180px;margin-bottom:0" placeholder="이름, 거주지, 관심분야로 검색..." oninput="applyMemberFilters()">
@@ -1025,7 +1028,7 @@ function bulkApprove() {
   if(!ids.length) return;
   if(!confirm(`선택한 ${ids.length}명을 일괄 승인할까요?`)) return;
   google.script.run.withSuccessHandler(r=>{
-    toast(`✅ ${r.count}명 승인 완료`);
+    toast(`✅ ${r.count}명 승인 완료` + (r.skipped ? ` (기존 회원 ${r.skipped}명은 중복 등록 생략)` : ''));
     loadApplications();
   }).withFailureHandler(()=>toast('오류 발생')).bulkApproveApplications(ids);
 }
@@ -1057,8 +1060,11 @@ function openAppDetail(id) {
 function doApprove() {
   if(!confirm('이 신청자를 승인하고 회원으로 등록할까요?')) return;
   google.script.run.withSuccessHandler(r=>{
-    if(r.success){ closeModal('appDetail'); loadApplications(); toast('승인 완료 — 회원목록에 추가됐어요 ✅'); }
-    else toast('오류: '+r.message);
+    if(r.success){
+      closeModal('appDetail'); loadApplications();
+      toast(r.existed ? '승인 완료 — 이미 등록된 회원이라 중복 추가는 생략했어요 ✅' : '승인 완료 — 회원목록에 추가됐어요 ✅');
+    }
+    else toast(r.message==='already' ? '이미 처리된 신청이에요' : '오류: '+r.message);
   }).approveApplication(currentAppId);
 }
 
@@ -1935,6 +1941,21 @@ function sanctionMember(id,name){
 }
 function restoreMember(id){
   google.script.run.withSuccessHandler(()=>{loadMembers();toast('복구 처리됐어요');}).updateMemberStatus(id,'활성');
+}
+
+// 중복 회원 정리 — 먼저 중복 그룹을 보여주고 확인 후 정리
+function cleanupDupMembersUI(){
+  toast('중복 회원 확인 중...');
+  google.script.run.withSuccessHandler(groups=>{
+    if(!groups || !groups.length){ toast('✅ 중복 회원이 없어요'); return; }
+    const lines = groups.map(g=>`• ${g[0].name} (${g.length}건)`).join('\n');
+    const total = groups.reduce((s,g)=>s+g.length-1, 0);
+    if(!confirm(`중복 회원 ${groups.length}명 발견:\n\n${lines}\n\n각각 1명만 남기고 ${total}개 행을 정리할까요?\n(지인표시·특이사항·제재상태가 있는 행을 우선 보존해요)`)) return;
+    google.script.run.withSuccessHandler(r=>{
+      toast(`🧹 중복 ${r.removed}건 정리 완료`);
+      loadMembers();
+    }).withFailureHandler(()=>toast('정리 실패. 다시 시도해주세요')).cleanupDuplicateMembers();
+  }).withFailureHandler(()=>toast('확인 실패. 다시 시도해주세요')).findDuplicateMembers();
 }
 function dupCheck(name){
   if(!name){document.getElementById('dup-warn').style.display='none';return;}
