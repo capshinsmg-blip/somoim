@@ -1057,21 +1057,37 @@ function openAppDetail(id) {
   openModal('appDetail');
 }
 
-function doApprove() {
-  if(!confirm('이 신청자를 승인하고 회원으로 등록할까요?')) return;
+// 세션 인증이 풀렸을 때(운영자 접속코드 로그인) 저장된 코드로 재인증 후 콜백
+function reauthThen(cb){
+  var code=''; try{ code = localStorage.getItem(SM_CODE_KEY) || ''; }catch(e){}
+  if(!code){ toast('세션이 만료됐어요. 새로고침 후 다시 시도해주세요'); return; }
+  google.script.run
+    .withSuccessHandler(function(r){ if(r && r.ok){ cb(); } else { toast('세션 만료 — 새로고침 후 다시 시도해주세요'); } })
+    .withFailureHandler(function(){ toast('세션 만료 — 새로고침 후 다시 시도해주세요'); })
+    .checkCode(code);
+}
+
+function doApprove(){ if(!confirm('이 신청자를 승인하고 회원으로 등록할까요?')) return; approveRun(false); }
+function approveRun(retried){
   google.script.run.withSuccessHandler(r=>{
-    if(r.success){
+    if(r && r.success){
       closeModal('appDetail'); loadApplications();
       toast(r.existed ? '승인 완료 — 이미 등록된 회원이라 중복 추가는 생략했어요 ✅' : '승인 완료 — 회원목록에 추가됐어요 ✅');
     }
-    else toast(r.message==='already' ? '이미 처리된 신청이에요' : '오류: '+r.message);
+    else toast(r && r.message==='already' ? '이미 처리된 신청이에요' : '오류: '+((r && r.message) || '승인 실패'));
+  }).withFailureHandler(err=>{
+    if(!retried){ reauthThen(function(){ approveRun(true); }); return; }
+    toast('승인 실패: '+((err && err.message) || '다시 시도해주세요'));
   }).approveApplication(currentAppId);
 }
 
-function doReject() {
-  if(!confirm('이 신청자를 거절할까요?')) return;
+function doReject(){ if(!confirm('이 신청자를 거절할까요?')) return; rejectRun(false); }
+function rejectRun(retried){
   google.script.run.withSuccessHandler(()=>{
     closeModal('appDetail'); loadApplications(); toast('거절 처리됐어요');
+  }).withFailureHandler(err=>{
+    if(!retried){ reauthThen(function(){ rejectRun(true); }); return; }
+    toast('거절 실패: '+((err && err.message) || '다시 시도해주세요'));
   }).rejectApplication(currentAppId);
 }
 

@@ -86,6 +86,9 @@ function currentOperatorEmail_() {
     if (key) {
       var cached = CacheService.getScriptCache().get('opauth_' + key);
       if (cached) return String(cached).trim().toLowerCase();
+      // 캐시가 (TTL 만료·용량 축출로) 비어도 인증이 풀리지 않도록 영구 저장소에서 복원
+      var stored = PropertiesService.getScriptProperties().getProperty('opauth_' + key);
+      if (stored) return String(stored).trim().toLowerCase();
     }
   } catch (e) {}
   return '';
@@ -108,7 +111,10 @@ function checkCode(code) {
   if (!match) return { ok: false };
   try {
     var key = Session.getTemporaryActiveUserKey();
-    if (key) CacheService.getScriptCache().put('opauth_' + key, match.email, 21600);
+    if (key) {
+      CacheService.getScriptCache().put('opauth_' + key, match.email, 21600);
+      PropertiesService.getScriptProperties().setProperty('opauth_' + key, match.email);  // 영구 저장(캐시 축출 대비)
+    }
   } catch (e) {}
   return { ok: true, name: match.name };
 }
