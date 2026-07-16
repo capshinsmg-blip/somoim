@@ -208,6 +208,7 @@ select.form-input{cursor:pointer}
         <div class="section-title">📨 가입신청 목록</div>
         <div style="display:flex;gap:8px;align-items:center">
           <button id="btn-bulk-approve" class="btn btn-success btn-sm" style="display:none" onclick="bulkApprove()">✅ 선택 일괄 승인</button>
+          <button class="btn btn-secondary btn-sm" onclick="mergeDupAppsUI()">🧹 중복 신청 합치기</button>
           <button class="btn btn-secondary" onclick="loadApplications()">🔄 새로고침</button>
         </div>
       </div>
@@ -798,6 +799,20 @@ function loadApplications() {
   google.script.run.withSuccessHandler(d=>{A=d; renderApps(d);}).getApplications();
 }
 
+// 중복 가입신청 합치기 — 확인 후 각 사람당 1건만 남기고 정리
+function mergeDupAppsUI(){
+  toast('중복 신청 확인 중...');
+  google.script.run.withSuccessHandler(groups=>{
+    if(!groups || !groups.length){ toast('✅ 중복 신청이 없어요'); return; }
+    var lines = groups.map(g=>`· ${g.name}${g.phone?' ('+g.phone+')':''} — ${g.count}건`).join('\n');
+    var total = groups.reduce((s,g)=>s+g.count,0);
+    if(!confirm(`중복 신청 ${groups.length}명 발견:\n\n${lines}\n\n각 사람당 1건만 남기고 ${total-groups.length}건을 정리할까요?\n(남길 우선순위: 승인 > 대기중 > 거절, 같으면 최신)`)) return;
+    google.script.run.withSuccessHandler(r=>{
+      toast(`🧹 중복 신청 ${r.removed}건 정리 완료`); loadApplications();
+    }).withFailureHandler(()=>toast('정리 실패. 다시 시도해주세요')).mergeDuplicateApplications();
+  }).withFailureHandler(()=>toast('확인 실패. 다시 시도해주세요')).findDuplicateApplications();
+}
+
 function filterApps(f, btn) {
   appFilter = f;
   document.querySelectorAll('#app-status-filters .filter-btn').forEach(b=>b.classList.remove('active'));
@@ -1054,6 +1069,16 @@ function openAppDetail(id) {
   const isPending = a.status==='대기중';
   document.getElementById('btn-approve').style.display = isPending?'':'none';
   document.getElementById('btn-reject').style.display = isPending?'':'none';
+  if(!isPending){
+    const cur = a.status;
+    const opts = [['대기중','⏳ 대기중으로'],['승인','✅ 승인으로'],['거절','❌ 거절로']].filter(o=>o[0]!==cur);
+    document.getElementById('app-detail-content').insertAdjacentHTML('beforeend',
+      `<div style="margin-top:14px;padding-top:14px;border-top:1px solid #eee">
+        <div style="font-size:12px;color:#888;margin-bottom:8px">이 신청은 <b>${cur}</b> 상태예요. 잘못 처리했다면 변경할 수 있어요:</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${opts.map(o=>`<button class="btn btn-sm btn-secondary" onclick="changeAppStatus('${o[0]}')">${o[1]}</button>`).join('')}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:8px">※ '승인'으로 바꾸면 회원목록에 없을 때만 추가돼요. 승인을 취소해도 이미 등록된 회원은 자동 삭제되지 않아요(회원 탭에서 관리).</div>
+      </div>`);
+  }
   openModal('appDetail');
 }
 
@@ -1089,6 +1114,24 @@ function rejectRun(retried){
     if(!retried){ reauthThen(function(){ rejectRun(true); }); return; }
     toast('거절 실패: '+((err && err.message) || '다시 시도해주세요'));
   }).rejectApplication(currentAppId);
+}
+
+// 처리된(승인/거절) 신청의 상태를 다시 변경 — 잘못 처리한 건 되돌리기
+function changeAppStatus(status){
+  var msg = status==='승인' ? '이 신청을 승인(회원등록)으로 변경할까요?'
+          : status==='거절' ? '이 신청을 거절로 변경할까요?'
+          : '이 신청을 대기중으로 되돌릴까요?';
+  if(!confirm(msg)) return;
+  changeAppStatusRun(status, false);
+}
+function changeAppStatusRun(status, retried){
+  google.script.run.withSuccessHandler(r=>{
+    if(r && r.success){ closeModal('appDetail'); loadApplications(); toast('상태를 '+status+'(으)로 변경했어요 ✅'); }
+    else toast('오류: '+((r && r.message) || '변경 실패'));
+  }).withFailureHandler(err=>{
+    if(!retried){ reauthThen(function(){ changeAppStatusRun(status, true); }); return; }
+    toast('변경 실패: '+((err && err.message) || '다시 시도해주세요'));
+  }).setApplicationStatus(currentAppId, status);
 }
 
 // ===== 리더신청 =====

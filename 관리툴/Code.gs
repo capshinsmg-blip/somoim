@@ -1490,23 +1490,38 @@ function memberExists_(name, phone) {
   });
 }
 
+// 가입신청 상태 설정 (대기중/승인/거절). 승인 시 회원목록에 없을 때만 추가(중복·이중클릭 방지).
+// 승인을 취소·변경해도 이미 등록된 회원은 자동 삭제하지 않음(회원 탭에서 관리).
+function setApplicationStatus_(rowId, status) {
+  const sheet = getSheet('가입신청');
+  if (!sheet) return { success: false, message: '가입신청 시트를 찾을 수 없어요' };
+  const row = sheet.getRange(rowId, 1, 1, 10).getValues()[0];
+  if (!row || !String(row[1] || '').trim()) return { success: false, message: '신청 정보를 찾을 수 없어요 (새로고침 후 다시 시도)' };
+  var existed = false;
+  if (status === '승인') {
+    existed = memberExists_(row[1], row[4]);
+    if (!existed) {
+      getSheet('회원목록').appendRow([
+        row[1], row[2], row[3], normalizePhone_(row[4]), row[5], row[6],
+        Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd'), '활성'
+      ]);
+    }
+  }
+  sheet.getRange(rowId, 10).setValue(status);
+  return { success: true, existed: existed };
+}
+
+// 처리된(승인/거절) 신청의 상태를 다시 변경 — 잘못 처리한 건 되돌리기용
+function setApplicationStatus(rowId, status) {
+  requireAuth_();
+  status = String(status || '').trim();
+  if (['대기중', '승인', '거절'].indexOf(status) === -1) return { success: false, message: '잘못된 상태' };
+  return setApplicationStatus_(rowId, status);
+}
+
 function approveApplication(rowId) {
   requireAuth_();
-  const sheet = getSheet('가입신청');
-  const row = sheet.getRange(rowId, 1, 1, 10).getValues()[0];
-  // 이중 클릭·중복 호출로 같은 신청이 두 번 승인되는 것 방지
-  if (String(row[9]) !== '대기중') return { success: false, message: 'already' };
-  // 이미 회원이면(중복 신청 승인 등) 회원목록에 다시 추가하지 않고 상태만 승인 처리
-  const existed = memberExists_(row[1], row[4]);
-  if (!existed) {
-    getSheet('회원목록').appendRow([
-      row[1], row[2], row[3], normalizePhone_(row[4]), row[5], row[6],
-      Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd'),
-      '활성'
-    ]);
-  }
-  sheet.getRange(rowId, 10).setValue('승인');
-  return { success: true, existed: existed };
+  return setApplicationStatus_(rowId, '승인');
 }
 
 function bulkApproveApplications(rowIds) {
@@ -1516,7 +1531,8 @@ function bulkApproveApplications(rowIds) {
   let count = 0, skipped = 0;
   rowIds.forEach(function(rowId) {
     const row = sheet.getRange(rowId, 1, 1, 10).getValues()[0];
-    if (String(row[9]) !== '대기중') return;
+    const st = String(row[9] || '').trim();
+    if (st && st !== '대기중') return;   // 이미 승인/거절된 건 건너뜀 (빈칸=대기중 간주)
     // 이미 회원이면 추가 생략 (같은 사람의 중복 신청을 함께 선택해도 한 번만 등록됨)
     if (memberExists_(row[1], row[4])) {
       skipped++;
@@ -1537,6 +1553,56 @@ function rejectApplication(rowId) {
   requireAuth_();
   getSheet('가입신청').getRange(rowId, 10).setValue('거절');
   return { success: true };
+}
+
+// ===== 중복 가입신청 합치기 =====
+// 같은 사람(정규화 전화번호, 없으면 공백제거 이름) 기준 중복 가입신청 그룹 조회
+function findDuplicateApplications() {
+  requireAuth_();
+  const sheet = getSheet('가입신청');
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  const groups = {};
+  for (var i = 1; i < data.length; i++) {
+    var nm = String(data[i][1] || '').replace(/\s/g, '');
+    var ph = normalizePhone_(data[i][4] || '');
+    if (!nm && !ph) continue;
+    var key = ph || ('nm:' + nm);
+    (groups[key] = groups[key] || []).push({ name: String(data[i][1] || ''), phone: ph });
+  }
+  var out = [];
+  Object.keys(groups).forEach(function(k) {
+    if (groups[k].length > 1) out.push({ name: groups[k][0].name, phone: groups[k][0].phone, count: groups[k].length });
+  });
+  return out;
+}
+
+// 중복 가입신청 합치기 — 그룹마다 1건만 남기고 삭제. 남길 우선순위: 승인 > 대기중(빈칸) > 거절, 같으면 최신 행
+function mergeDuplicateApplications() {
+  requireAuth_();
+  const sheet = getSheet('가입신청');
+  if (!sheet) return { success: true, removed: 0 };
+  const data = sheet.getDataRange().getValues();
+  const groups = {};
+  for (var i = 1; i < data.length; i++) {
+    var nm = String(data[i][1] || '').replace(/\s/g, '');
+    var ph = normalizePhone_(data[i][4] || '');
+    if (!nm && !ph) continue;
+    var key = ph || ('nm:' + nm);
+    (groups[key] = groups[key] || []).push({ rowNum: i + 1, status: String(data[i][9] || '대기중').trim() });
+  }
+  var pr = function(s) { return s === '승인' ? 3 : (s === '거절' ? 1 : 2); };
+  var toDelete = [];
+  Object.keys(groups).forEach(function(k) {
+    var g = groups[k];
+    if (g.length <= 1) return;
+    var keep = g[0];
+    g.forEach(function(r) { if (pr(r.status) > pr(keep.status) || (pr(r.status) === pr(keep.status) && r.rowNum > keep.rowNum)) keep = r; });
+    g.forEach(function(r) { if (r.rowNum !== keep.rowNum) toDelete.push(r.rowNum); });
+  });
+  toDelete.sort(function(a, b) { return b - a; });   // 아래 행부터 삭제 (행번호 밀림 방지)
+  toDelete.forEach(function(rn) { sheet.deleteRow(rn); });
+  return { success: true, removed: toDelete.length };
 }
 
 // 폼 제출 이벤트에서 응답 값 배열 추출
