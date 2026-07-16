@@ -1654,36 +1654,43 @@ function onMemberFormSubmit(e) {
       return;
     }
   }
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName('가입신청');
-  if (!sheet) {
-    sheet = ss.insertSheet('가입신청');
-    const headers = ['타임스탬프', '이름', '나이', '성별', '연락처', '거주지역', '관심분야', '가입동기', '동의여부', '처리상태'];
-    const range = sheet.getRange(1, 1, 1, headers.length);
-    range.setValues([headers]);
-    range.setFontWeight('bold');
-    range.setBackground('#5b5bd6');
-    range.setFontColor('white');
-  }
-  var vals = formEventValues_(e);
-  // 중복 접수 방어 — 트리거가 두 번 발동해도(폼+시트 이중 등록 등) 같은 신청이 두 번 기록되지 않도록
-  // 최근 접수분 중 이름+정규화 전화번호가 같으면 건너뜀 (0102030201 == 102030201 로 매칭됨)
-  if (isDuplicateApplication_(sheet, vals)) {
-    Logger.log('onMemberFormSubmit 중복 접수 무시: ' + (vals[1] || '') + ' / ' + (vals[4] || ''));
-    return;
-  }
-  sheet.appendRow([...vals, '대기중']);
-  // 접수 즉시 담당자 자동 배정 + 운영진 텔레그램 알림
-  var assignee = '';
+  // 트리거 중복 발동·동시 접수 경합으로 같은 신청이 2번 기록되는 것 방지 — 잠금으로 직렬화
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(20000); } catch (le) { Logger.log('onMemberFormSubmit 락 획득 실패, 계속 진행'); }
   try {
-    autoAssignCore_();
-    assignee = String(sheet.getRange(sheet.getLastRow(), 11).getValue() || '');
-  } catch (err) {}
-  try {
-    notifyTelegram_('🆕 새 가입신청\n• ' + (vals[1] || '?') + ' (' + normalizeAge_(vals[2] || '') + '/' + normalizeGender_(vals[3] || '') + ', ' + (vals[5] || '-') + ')'
-      + (assignee ? '\n• 담당: ' + assignee : '')
-      + '\n관리툴 → 가입신청에서 신원확인 후 승인해주세요');
-  } catch (err2) {}
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('가입신청');
+    if (!sheet) {
+      sheet = ss.insertSheet('가입신청');
+      const headers = ['타임스탬프', '이름', '나이', '성별', '연락처', '거주지역', '관심분야', '가입동기', '동의여부', '처리상태'];
+      const range = sheet.getRange(1, 1, 1, headers.length);
+      range.setValues([headers]);
+      range.setFontWeight('bold');
+      range.setBackground('#5b5bd6');
+      range.setFontColor('white');
+    }
+    var vals = formEventValues_(e);
+    // 중복 접수 방어 — 잠금 안에서 검사하므로 동시 발동해도 두 번째는 첫 행을 보고 건너뜀
+    // 최근 접수분 중 이름+정규화 전화번호가 같으면 건너뜀 (0102030201 == 102030201 로 매칭됨)
+    if (isDuplicateApplication_(sheet, vals)) {
+      Logger.log('onMemberFormSubmit 중복 접수 무시: ' + (vals[1] || '') + ' / ' + (vals[4] || ''));
+      return;
+    }
+    sheet.appendRow([...vals, '대기중']);
+    // 접수 즉시 담당자 자동 배정 + 운영진 텔레그램 알림
+    var assignee = '';
+    try {
+      autoAssignCore_();
+      assignee = String(sheet.getRange(sheet.getLastRow(), 11).getValue() || '');
+    } catch (err) {}
+    try {
+      notifyTelegram_('🆕 새 가입신청\n• ' + (vals[1] || '?') + ' (' + normalizeAge_(vals[2] || '') + '/' + normalizeGender_(vals[3] || '') + ', ' + (vals[5] || '-') + ')'
+        + (assignee ? '\n• 담당: ' + assignee : '')
+        + '\n관리툴 → 가입신청에서 신원확인 후 승인해주세요');
+    } catch (err2) {}
+  } finally {
+    try { lock.releaseLock(); } catch (e3) {}
+  }
 }
 
 // ===== 리더신청 관리 =====
@@ -1850,18 +1857,19 @@ function onLeaderFormSubmit(e) {
 function setupTriggers() {
   requireAuth_();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  var removed = 0, installed = 0;
 
-  // 기존 폼제출 트리거 전부 삭제
+  // 기존 폼제출 트리거 전부 삭제 (중복 누적된 트리거 제거 → 신청 2번 들어오는 문제 해결)
   // getProjectTriggers()로 조회 — forForm()으로 만든 트리거는 폼에 연결돼 있어
   // getUserTriggers(ss)로는 잡히지 않기 때문(중복 누적의 원인)
   ScriptApp.getProjectTriggers().forEach(function(t) {
     if (t.getEventType() === ScriptApp.EventType.ON_FORM_SUBMIT) {
-      ScriptApp.deleteTrigger(t);
+      ScriptApp.deleteTrigger(t); removed++;
       Logger.log('기존 트리거 삭제: ' + t.getHandlerFunction());
     }
   });
 
-  // 스프레드시트에 연결된 폼을 찾아 개별 트리거 등록
+  // 스프레드시트에 연결된 폼을 찾아 개별 트리거 등록 (폼당 정확히 1개)
   ss.getSheets().forEach(function(sheet) {
     const formUrl = sheet.getFormUrl();
     if (!formUrl) return;
@@ -1870,17 +1878,18 @@ function setupTriggers() {
       const title = form.getTitle();
       if (title.indexOf('리더') >= 0) {
         ScriptApp.newTrigger('onLeaderFormSubmit').forForm(form).onFormSubmit().create();
-        Logger.log('✅ 리더신청 트리거 등록: ' + title);
       } else {
         ScriptApp.newTrigger('onMemberFormSubmit').forForm(form).onFormSubmit().create();
-        Logger.log('✅ 가입신청 트리거 등록: ' + title);
       }
+      installed++;
+      Logger.log('✅ 트리거 등록: ' + title);
     } catch(err) {
       Logger.log('폼 접근 오류: ' + err);
     }
   });
 
-  Logger.log('setupTriggers 완료');
+  Logger.log('setupTriggers 완료: 제거 ' + removed + ', 설치 ' + installed);
+  return { success: true, removed: removed, installed: installed };
 }
 
 // ===== 경고/주의 관리 =====

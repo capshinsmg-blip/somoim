@@ -224,6 +224,7 @@ select.form-input{cursor:pointer}
         <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="openOperators()">👤 운영자 관리</button>
         <button class="btn btn-secondary btn-sm" onclick="openTelegramSettings()">🔔 알림 설정</button>
         <button class="btn btn-secondary btn-sm" onclick="autoAssign()">⚖️ 미배정 자동 분배</button>
+        <button class="btn btn-secondary btn-sm" onclick="resetTriggersUI()">🔧 트리거 재설정</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -811,6 +812,16 @@ function mergeDupAppsUI(){
       toast(`🧹 중복 신청 ${r.removed}건 정리 완료`); loadApplications();
     }).withFailureHandler(()=>toast('정리 실패. 다시 시도해주세요')).mergeDuplicateApplications();
   }).withFailureHandler(()=>toast('확인 실패. 다시 시도해주세요')).findDuplicateApplications();
+}
+
+// 폼 제출 트리거 재설정 — 중복 설치된 트리거를 제거하고 폼당 1개만 남김 (신청 2번 들어오는 문제 해결)
+function resetTriggersUI(){
+  if(!confirm('폼 제출 트리거를 재설정할까요?\n\n중복 설치된 트리거를 모두 제거하고 폼당 1개만 다시 설치해요.\n신청이 2번씩 들어오는 문제를 해결합니다.')) return;
+  toast('트리거 재설정 중...');
+  google.script.run.withSuccessHandler(r=>{
+    if(r && r.success){ toast(`✅ 트리거 재설정 완료 — ${r.removed}개 제거, ${r.installed}개 재설치`); }
+    else toast('재설정 실패');
+  }).withFailureHandler(err=>toast('재설정 실패: '+((err && err.message) || '다시 시도해주세요'))).setupTriggers();
 }
 
 function filterApps(f, btn) {
