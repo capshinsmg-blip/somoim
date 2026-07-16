@@ -225,6 +225,7 @@ select.form-input{cursor:pointer}
         <button class="btn btn-secondary btn-sm" onclick="openTelegramSettings()">🔔 알림 설정</button>
         <button class="btn btn-secondary btn-sm" onclick="autoAssign()">⚖️ 미배정 자동 분배</button>
         <button class="btn btn-secondary btn-sm" onclick="resetTriggersUI()">🔧 트리거 재설정</button>
+        <button class="btn btn-secondary btn-sm" onclick="diagnoseDupUI()">🔍 중복 원인 진단</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -822,6 +823,18 @@ function resetTriggersUI(){
     if(r && r.success){ toast(`✅ 트리거 재설정 완료 — ${r.removed}개 제거, ${r.installed}개 재설치`); }
     else toast('재설정 실패');
   }).withFailureHandler(err=>toast('재설정 실패: '+((err && err.message) || '다시 시도해주세요'))).setupTriggers();
+}
+
+// 중복 접수 원인 진단 — 트리거/시트-폼 연결/최근 행 상태를 한 번에 확인
+function diagnoseDupUI(){
+  toast('진단 중...');
+  google.script.run.withSuccessHandler(r=>{
+    var msg = '🔍 중복 접수 진단 결과\n\n'
+      + '[설치된 트리거 ' + (r.triggers||[]).length + '개]\n' + ((r.triggers||[]).join('\n') || '(없음)')
+      + '\n\n[시트 / 폼 응답시트 여부]\n' + ((r.sheets||[]).join('\n') || '(없음)')
+      + '\n\n[가입신청 최근 행]\n' + ((r.recent||[]).join('\n') || '(없음)');
+    alert(msg);
+  }).withFailureHandler(err=>toast('진단 실패: '+((err && err.message) || '다시 시도해주세요'))).diagnoseDuplicates();
 }
 
 function filterApps(f, btn) {

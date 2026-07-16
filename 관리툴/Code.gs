@@ -1670,13 +1670,25 @@ function onMemberFormSubmit(e) {
       range.setFontColor('white');
     }
     var vals = formEventValues_(e);
-    // 중복 접수 방어 — 잠금 안에서 검사하므로 동시 발동해도 두 번째는 첫 행을 보고 건너뜀
-    // 최근 접수분 중 이름+정규화 전화번호가 같으면 건너뜀 (0102030201 == 102030201 로 매칭됨)
-    if (isDuplicateApplication_(sheet, vals)) {
-      Logger.log('onMemberFormSubmit 중복 접수 무시: ' + (vals[1] || '') + ' / ' + (vals[4] || ''));
-      return;
+    // ⚠️ '가입신청'이 폼 응답 시트면 폼이 이미 행을 기록함 → 여기서 append하면 항상 2행이 됨.
+    //    이 경우 append하지 않고 방금 기록된 행의 처리상태만 '대기중'으로 채운다.
+    var isResponseSheet = false;
+    try { isResponseSheet = !!sheet.getFormUrl(); } catch (er) {}
+    if (isResponseSheet) {
+      var lr = sheet.getLastRow();
+      if (lr >= 2 && String(sheet.getRange(lr, 10).getValue() || '').trim() === '') {
+        sheet.getRange(lr, 10).setValue('대기중');
+      }
+      Logger.log('onMemberFormSubmit: 폼 응답 시트 → append 생략(중복 방지), 처리상태만 기록');
+    } else {
+      // 중복 접수 방어 — 잠금 안에서 검사하므로 동시 발동해도 두 번째는 첫 행을 보고 건너뜀
+      // 최근 접수분 중 이름+정규화 전화번호가 같으면 건너뜀 (0102030201 == 102030201 로 매칭됨)
+      if (isDuplicateApplication_(sheet, vals)) {
+        Logger.log('onMemberFormSubmit 중복 접수 무시: ' + (vals[1] || '') + ' / ' + (vals[4] || ''));
+        return;
+      }
+      sheet.appendRow([...vals, '대기중']);
     }
-    sheet.appendRow([...vals, '대기중']);
     // 접수 즉시 담당자 자동 배정 + 운영진 텔레그램 알림
     var assignee = '';
     try {
@@ -1890,6 +1902,34 @@ function setupTriggers() {
 
   Logger.log('setupTriggers 완료: 제거 ' + removed + ', 설치 ' + installed);
   return { success: true, removed: removed, installed: installed };
+}
+
+// ===== 중복 접수 원인 진단 =====
+// 설치된 트리거 / 시트-폼 연결 / 가입신청 최근 행을 한 번에 확인해 중복 원인을 특정
+function diagnoseDuplicates() {
+  requireAuth_();
+  var out = { triggers: [], sheets: [], recent: [] };
+  try {
+    ScriptApp.getProjectTriggers().forEach(function(t) {
+      out.triggers.push(t.getHandlerFunction() + '  (' + String(t.getEventType()) + ')');
+    });
+  } catch (e) { out.triggers.push('트리거 조회 실패: ' + e); }
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.getSheets().forEach(function(s) {
+    var linked = false;
+    try { linked = !!s.getFormUrl(); } catch (e) {}
+    out.sheets.push(s.getName() + (linked ? '  ← 📎 폼 응답 시트' : '') + '  (' + s.getLastRow() + '행)');
+  });
+  var sh = ss.getSheetByName('가입신청');
+  if (sh && sh.getLastRow() >= 2) {
+    var last = sh.getLastRow();
+    var start = Math.max(2, last - 5);
+    var d = sh.getRange(start, 1, last - start + 1, 10).getValues();
+    d.forEach(function(r, i) {
+      out.recent.push((start + i) + '행: ' + String(r[0]) + ' | ' + String(r[1]) + ' | ' + String(r[4]) + ' | 상태=' + (String(r[9]).trim() || '(빈칸)'));
+    });
+  }
+  return out;
 }
 
 // ===== 경고/주의 관리 =====
