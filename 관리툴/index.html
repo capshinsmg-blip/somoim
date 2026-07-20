@@ -1459,22 +1459,24 @@ function renderApplicants(list, eventName) {
       detail = `<div style="margin-top:8px;padding:8px 10px;background:#fff5f5;border-radius:8px;font-size:11px;color:#c92a2a;border:1px solid #ffa8a8">⚠️ 등록된 회원이 아닙니다. 신중하게 검토하세요.</div>`;
     }
     const eName = eventName.replace(/'/g,"\\'");
+    const aName = String(a.name||'').replace(/'/g,"\\'");
     let actions;
     if(a.status==='대기중'){
       actions = `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-          <button class="btn btn-success btn-sm" onclick="setApplicant(${a.id},'승인','${eName}')">승인</button>
-          <button class="btn btn-danger btn-sm" onclick="setApplicant(${a.id},'거절','${eName}')">거절</button>
+          <button class="btn btn-success btn-sm" onclick="setApplicant(${a.id},'승인','${eName}','${aName}')">승인</button>
+          <button class="btn btn-danger btn-sm" onclick="setApplicant(${a.id},'거절','${eName}','${aName}')">거절</button>
           <button class="btn btn-secondary btn-sm" onclick="cancelApplicant(${a.id},'${eName}')">🚫 취소</button>
          </div>`;
     } else if(a.status==='승인'){
       actions = `<div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
           ${bApp(a.status)}
+          <button class="btn btn-sm" style="background:#f0eefe;color:#5b46c4;border:1px solid #ddd6fe" onclick="copyJoinNotice('${eName}','${aName}')">📋 안내문 복사</button>
           <button class="btn btn-secondary btn-sm" onclick="cancelApplicant(${a.id},'${eName}')">🚫 신청 취소</button>
          </div>`;
     } else {
       actions = `<div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           ${bApp(a.status)}
-          ${a.status==='취소' ? `<button class="btn btn-secondary btn-sm" onclick="setApplicant(${a.id},'대기중','${eName}')">↩︎ 되돌리기</button>` : ''}
+          ${a.status==='취소' ? `<button class="btn btn-secondary btn-sm" onclick="setApplicant(${a.id},'대기중','${eName}','${aName}')">↩︎ 되돌리기</button>` : ''}
          </div>`;
     }
     const bg = isPending ? (isMember ? '#fff' : '#fff9f9') : '#f8f8fc';
@@ -1502,11 +1504,56 @@ function renderApplicants(list, eventName) {
   el.innerHTML = html;
 }
 
-function setApplicant(rowId, status, eventName) {
+// 승인된 참여자에게 보낼 안내문 생성 (모임정보 + 톡방 링크·입장코드)
+// 반환: {text} 정상 | {missing:true} 톡방링크 없음 | null 모임 못 찾음
+function buildJoinNotice(eventName, applicantName){
+  const e = (E||[]).find(x=>x.name===eventName);
+  if(!e) return null;
+  const link = String(e.chatLink||'').trim();
+  if(!link) return { missing:true };
+  const code = String(e.chatCode||'').trim();
+  const lines = [
+    `🎉 ${applicantName}님, '${e.name}' 참여가 확정됐어요!`,
+    '',
+    `📅 일시: ${fmtKorDate(e.date)}`,
+    `📍 장소: ${firstLocLine(e.location)}`
+  ];
+  if(e.leader) lines.push(`👤 리더: ${e.leader}`);
+  lines.push('', '💬 아래 톡방으로 입장해주세요', link);
+  if(code) lines.push(`🔑 입장 비밀번호: ${code}`);
+  lines.push('', '입장하시면 리더님께 간단히 인사 남겨주세요 😊');
+  return { text: lines.join('\n') };
+}
+
+// 안내문 복사 (승인된 참여자 카드의 📋 버튼)
+function copyJoinNotice(eventName, applicantName){
+  const r = buildJoinNotice(eventName, applicantName);
+  if(!r){ toast('모임 정보를 찾을 수 없어요'); return; }
+  if(r.missing){ toast('⚠️ 이 모임에 톡방 링크가 없어요 — 모임 수정에서 먼저 등록해주세요'); return; }
+  navigator.clipboard.writeText(r.text)
+    .then(()=>toast('📋 안내문 복사됨 — 카톡으로 보내주세요'))
+    .catch(()=>toast('복사 실패 — 다시 시도해주세요'));
+}
+
+function setApplicant(rowId, status, eventName, applicantName) {
   google.script.run.withSuccessHandler(()=>{
-    toast(status==='승인'?'승인 처리됐어요 ✅':status==='대기중'?'대기중으로 되돌렸어요 ↩︎':'거절 처리됐어요');
+    if(status==='승인'){
+      // 승인 즉시 안내문을 클립보드에 담아줌 (복사 실패 시 카드의 📋 버튼으로 재시도)
+      const r = buildJoinNotice(eventName, applicantName||'');
+      if(r && r.text){
+        navigator.clipboard.writeText(r.text)
+          .then(()=>toast('✅ 승인 완료 · 📋 안내문 복사됨 — 카톡으로 보내주세요'))
+          .catch(()=>toast('✅ 승인 완료 — 📋 안내문 복사 버튼을 눌러주세요'));
+      } else if(r && r.missing){
+        toast('✅ 승인 완료 · ⚠️ 톡방 링크가 없어 안내문을 못 만들었어요');
+      } else {
+        toast('승인 처리됐어요 ✅');
+      }
+    } else {
+      toast(status==='대기중'?'대기중으로 되돌렸어요 ↩︎':'거절 처리됐어요');
+    }
     openApplicants(eventName);
-  }).updateApplicantStatus(rowId, status);
+  }).withFailureHandler(()=>toast('처리 실패. 다시 시도해주세요')).updateApplicantStatus(rowId, status);
 }
 
 // 신청 취소 (운영자) — 대기중·승인 모두 취소 가능. 참여 인원에서 제외됨
