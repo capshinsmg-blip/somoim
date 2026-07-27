@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#6C63E0; --purple-deep:#5b53d4; --brand:#5b56d6; --yellow:#FFD54A;
+    --ink:#2e2e46; --ink-soft:#5f5f7a; --lilac:#f0f0f7; --muted:#a0a0b8;
+    --before-bg:#e7e7f0; --before-tx:#8b8ba3;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#d9dbe9;font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;gap:30px;padding:30px}
+
+  .card{width:1080px;height:1350px;container-type:inline-size;position:relative;overflow:hidden;display:flex;flex-direction:column;padding:6.6cqw 6.4cqw}
+  .card.pp{background:var(--purple);color:#fff}
+  .card.lt{background:var(--lilac);color:var(--ink)}
+  .card.pp::before{content:"";position:absolute;right:-10cqw;top:-12cqw;width:44cqw;height:44cqw;border-radius:50%;background:rgba(255,255,255,.09)}
+  .card.pp::after{content:"";position:absolute;left:-12cqw;bottom:-14cqw;width:40cqw;height:40cqw;border-radius:50%;background:rgba(255,255,255,.06)}
+
+  .hd{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2}
+  .wm{font-weight:900;font-size:2.6cqw;letter-spacing:-.01em}
+  .pp .wm{color:#fff}.lt .wm{color:var(--brand)}
+  .pg{font-size:2.15cqw;font-weight:700;letter-spacing:.02em}
+  .lt .pg{color:#b7b7cc}
+
+  .mid{flex:1;display:flex;flex-direction:column;position:relative;z-index:2}
+  .mid.center{align-items:center;text-align:center;justify-content:center}
+  .mid.left{justify-content:center}
+
+  .pill{display:inline-block;align-self:flex-start;font-size:1.95cqw;font-weight:700;letter-spacing:.22em;padding:1.5cqw 3cqw;border-radius:100px;background:rgba(255,255,255,.16);color:#fff;margin-bottom:5cqw}
+  .eb{font-size:2.15cqw;font-weight:700;letter-spacing:.02em;color:var(--brand);margin-bottom:3cqw}
+
+  h1{font-weight:900;font-size:6.6cqw;line-height:1.32;letter-spacing:-.02em}
+  h1.sm{font-size:6cqw}
+  .y{color:var(--yellow)}
+  .pu{color:var(--brand)}
+  .dash{width:9cqw;height:.7cqw;border-radius:100px;background:var(--yellow);margin:4.5cqw 0}
+  .sub{font-size:2.7cqw;line-height:1.72;font-weight:500}
+  .pp .sub{color:rgba(255,255,255,.9)}.lt .sub{color:var(--ink-soft)}
+
+  .chip{width:12cqw;height:12cqw;border-radius:3.4cqw;background:#e9e7fb;display:flex;align-items:center;justify-content:center;font-size:6cqw;margin-bottom:4cqw}
+  .list{display:flex;flex-direction:column;gap:2.8cqw;margin-top:2cqw}
+  .row{display:flex;align-items:center;gap:3cqw}
+  .ic{flex:none;width:9cqw;height:9cqw;border-radius:2.6cqw;background:#e9e7fb;display:flex;align-items:center;justify-content:center;font-size:4cqw}
+  .row .t{font-size:2.85cqw;font-weight:500;line-height:1.4;color:var(--ink)}
+  .row .t b{font-weight:700;color:var(--ink)}
+
+  .ba{margin-top:2cqw}
+  .bc{background:#fff;border-radius:3.4cqw;padding:4cqw 4.4cqw}
+  .bc.after{border:.4cqw solid #d7d4fb}
+  .tag{display:inline-block;font-size:1.9cqw;font-weight:900;letter-spacing:.14em;padding:1.1cqw 2.6cqw;border-radius:100px;margin-bottom:2.4cqw}
+  .tag.b{background:var(--before-bg);color:var(--before-tx)}
+  .tag.a{background:var(--brand);color:#fff}
+  .bc .bt{font-size:2.9cqw;line-height:1.5;font-weight:700;color:#4a4a63}
+  .bc.after .bt{color:var(--ink)}
+  .bc .bt .pu{color:var(--brand)}
+  .arrow{display:flex;justify-content:center;font-size:4cqw;color:var(--brand);margin:1.6cqw 0}
+
+  .votes{display:flex;flex-direction:column;gap:3cqw;width:100%;margin-top:6cqw}
+  .vote{display:flex;align-items:center;justify-content:center;gap:3cqw;background:#fff;border-radius:100px;padding:3.6cqw;font-size:3.1cqw;font-weight:900;color:var(--purple-deep)}
+  .vote .em{font-size:4cqw}
+  .hero{font-size:9cqw;margin-bottom:3cqw}
+
+  .ft{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;font-size:2.3cqw;font-weight:700}
+  .pp .ft{color:rgba(255,255,255,.82)}
+  .lt .ft{color:#a2a2ba}
+  .ft .rt{font-size:3.4cqw}
+</style>
+</head>
+<body>
+
+  <div class="card pp">
+    <div class="hd"><span class="wm">2030안산소모임 🏠</span></div>
+    <div class="mid left">
+      <span class="pill">VOTE NOTICE</span>
+      <h1>모임 알림, 이제<br><span class="y">텔레그램으로?</span></h1>
+      <div class="dash"></div>
+      <p class="sub">더 빠른 알림과 편한 확인.<br>바꿀지 말지, 여러분의 투표로 정해요.</p>
+    </div>
+    <div class="ft"><span>옆으로 넘겨보세요</span><span class="rt">👉</span></div>
+  </div>
+
+  <div class="card lt">
+    <div class="hd"><span class="wm">2030안산소모임</span><span class="pg">02 / 05</span></div>
+    <div class="mid left">
+      <div class="eb">왜 옮기려 하나요</div>
+      <h1>지금은 이런 점이<br><span class="pu">아쉬워요</span></h1>
+      <div class="list">
+        <div class="row"><span class="ic">🕐</span><span class="t">신청하고 <b>결과를 언제 받을지</b> 몰라 기다려요</span></div>
+        <div class="row"><span class="ic">🔎</span><span class="t">리더는 <b>누가 신청했는지</b> 일일이 확인해요</span></div>
+        <div class="row"><span class="ic">📮</span><span class="t">안내가 <b>카톡·홈페이지로 흩어져</b> 있어요</span></div>
+      </div>
+    </div>
+    <div class="ft"><span>텔레그램이 이 세 가지를 한 번에 해결해요</span></div>
+  </div>
+
+  <div class="card lt">
+    <div class="hd"><span class="wm">2030안산소모임</span><span class="pg">03 / 05</span></div>
+    <div class="mid left">
+      <div class="eb">신청하는 분들에게</div>
+      <h1 class="sm">신청 결과를<br><span class="pu">실시간으로</span> 바로!</h1>
+      <div class="ba">
+        <div class="bc"><span class="tag b">BEFORE</span><div class="bt">결과가 나올 때까지<br>계속 기다려야 했어요 😥</div></div>
+        <div class="arrow">▼</div>
+        <div class="bc after"><span class="tag a">AFTER</span><div class="bt">승인되는 순간 <span class="pu">텔레그램으로 📩</span><br>바로 알림이 도착해요!</div></div>
+      </div>
+    </div>
+    <div class="ft"><span>더 이상 "저 됐나요?" 물어볼 필요 없어요</span></div>
+  </div>
+
+  <div class="card lt">
+    <div class="hd"><span class="wm">2030안산소모임</span><span class="pg">04 / 05</span></div>
+    <div class="mid left">
+      <div class="eb">리더님에게</div>
+      <h1 class="sm">내 모임 신청현황을<br><span class="pu">한눈에!</span></h1>
+      <div class="ba">
+        <div class="bc"><span class="tag b">BEFORE</span><div class="bt">누가 신청했는지<br>운영진에게 물어봤어요 😮‍💨</div></div>
+        <div class="arrow">▼</div>
+        <div class="bc after"><span class="tag a">AFTER</span><div class="bt">새 신청이 들어오면 <span class="pu">텔레그램으로 📩</span><br>실시간으로 바로 확인해요!</div></div>
+      </div>
+    </div>
+    <div class="ft"><span>명단을 일일이 전달받지 않아도 돼요</span></div>
+  </div>
+
+  <div class="card pp">
+    <div class="hd"><span class="wm">2030안산소모임 🏠</span><span class="pg" style="color:rgba(255,255,255,.7)">05 / 05</span></div>
+    <div class="mid center">
+      <div class="hero">🗳️</div>
+      <h1>텔레그램으로 이동,<br><span class="y">찬성하시나요?</span></h1>
+      <div class="votes">
+        <div class="vote"><span class="em">👍</span><span>좋아요, 옮겨요</span></div>
+        <div class="vote"><span class="em">🤔</span><span>아직은 글쎄요</span></div>
+      </div>
+    </div>
+    <div class="ft" style="justify-content:center"><span>공지방 투표에 참여해주세요 🙌</span></div>
+  </div>
+
+</body>
+</html>
