@@ -131,6 +131,11 @@ textarea.in{height:84px;resize:none;line-height:1.5}
     <div><b>내 신청 확인</b><span>신청 결과와 톡방 입장 링크를 확인하세요</span></div>
     <div class="ar">›</div>
   </div>
+  <div class="leader-cta" onclick="openLeaderView()">
+    <div class="em">👑</div>
+    <div><b>내 모임 참여자 확인</b><span>리더님, 내 모임 신청자와 성비를 확인하세요</span></div>
+    <div class="ar">›</div>
+  </div>
   <div class="leader-cta" onclick="openLeader()">
     <div class="em">💡</div>
     <div><b>열고 싶은 모임이 있나요?</b><span>리더가 되어 직접 모임을 만들어보세요</span></div>
@@ -226,6 +231,18 @@ textarea.in{height:84px;resize:none;line-height:1.5}
       <div class="errbox" id="s-err"></div>
       <button class="sbtn" id="s-btn" onclick="submitStatus()">조회하기</button>
       <div id="s-results" style="margin-top:16px"></div>
+    </div>
+
+    <div id="f-leaderview" style="display:none">
+      <div class="sh-title">👑 내 모임 참여자 확인</div>
+      <div class="sh-event">리더 본인 확인 후, 내가 연 모임의 승인 참여자를 볼 수 있어요</div>
+      <label>이름</label>
+      <input class="in" id="lv-name" placeholder="가입 시 이름">
+      <label>연락처</label>
+      <input class="in" id="lv-phone" type="tel" placeholder="01012345678">
+      <div class="errbox" id="lv-err"></div>
+      <button class="sbtn" id="lv-btn" onclick="submitLeaderView()">참여자 조회</button>
+      <div id="lv-results" style="margin-top:16px"></div>
     </div>
 
   </div>
@@ -476,6 +493,59 @@ function submitStatus(){
     })
     .catch(function(){ btn.disabled = false; btn.textContent = '조회하기'; showErr('s-err','error'); });
 }
+// 리더 전용 — 내 모임 참여자 확인
+function openLeaderView(){
+  prefill('lv'); hideErr('lv-err');
+  document.getElementById('lv-results').innerHTML = '';
+  showSheet('f-leaderview');
+  if(v('lv-name') && v('lv-phone')) submitLeaderView();
+}
+function lvGenderBar(m){
+  var known = m.males + m.females;
+  var mp = known ? Math.round(m.males/known*100) : 0, fp = known ? 100-mp : 0;
+  return '<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:#eee;margin:9px 0 5px">'
+    + (m.males?'<div style="width:'+mp+'%;background:#4dabf7"></div>':'')
+    + (m.females?'<div style="width:'+fp+'%;background:#f783ac"></div>':'')
+    + '</div>'
+    + '<div style="font-size:11.5px;color:#888"><b style="color:#1971c2">남 '+m.males+'</b> · <b style="color:#e64980">여 '+m.females+'</b>'+(m.unknown?' · 미상 '+m.unknown:'')+'</div>';
+}
+function submitLeaderView(){
+  var n = v('lv-name'), p = v('lv-phone');
+  hideErr('lv-err');
+  if(!n || !p){ showErr('lv-err','missing'); return; }
+  var btn = document.getElementById('lv-btn');
+  btn.disabled = true; btn.textContent = '조회 중...';
+  fetch(API + '?api=leadermeetings&name=' + encodeURIComponent(n) + '&phone=' + encodeURIComponent(p))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      btn.disabled = false; btn.textContent = '참여자 조회';
+      saveMe(n, p);
+      var box = document.getElementById('lv-results');
+      if(!d.ok){
+        box.innerHTML = '<div class="st-item" style="text-align:center;color:#999;font-size:13px">리더로 등록된 모임이 없거나<br>이름·연락처가 가입 정보와 달라요.</div>';
+        return;
+      }
+      var ms = d.meetings || [];
+      if(!ms.length){ box.innerHTML = '<div class="st-item" style="text-align:center;color:#999;font-size:13px">아직 개설한 모임이 없어요.</div>'; return; }
+      box.innerHTML = ms.map(function(m){
+        var plist = m.participants.length
+          ? m.participants.map(function(pt){
+              return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #f0f0f5">'
+                + '<span style="font-size:13.5px;font-weight:600">' + esc(pt.name) + '</span>'
+                + (pt.gender ? '<span style="font-size:11px;color:'+(pt.gender==='남'?'#1971c2':'#e64980')+'">'+esc(pt.gender)+'</span>' : '')
+                + '<a href="tel:' + esc(pt.phone) + '" style="margin-left:auto;font-size:12.5px;color:#5b5bd6;text-decoration:none;font-weight:600">' + esc(pt.phone) + '</a></div>';
+            }).join('')
+          : '<div style="color:#bbb;font-size:12px;padding:8px 0">아직 승인된 참여자가 없어요</div>';
+        return '<div class="st-item">'
+          + '<div class="st-top"><span class="st-name">' + esc(m.name) + '</span><span class="st-badge st-ok">👥 ' + m.count + '명</span></div>'
+          + (m.korDate ? '<div class="st-date">📅 ' + esc(m.korDate) + '</div>' : '')
+          + lvGenderBar(m)
+          + plist
+        + '</div>';
+      }).join('');
+    })
+    .catch(function(){ btn.disabled = false; btn.textContent = '참여자 조회'; showErr('lv-err','error'); });
+}
 function closeSheet(){ document.getElementById('ov').classList.remove('open'); }
 // 내 정보 저장 — 쿠키 + localStorage 병행 (카톡 인앱브라우저 등에서 localStorage가 안 남는 경우 대비)
 function smSetCookie(k,val){ try{ document.cookie = k+'='+encodeURIComponent(val)+'; max-age=31536000; path=/; samesite=lax'; }catch(e){} }
@@ -496,7 +566,7 @@ function saveMe(n,p){
 function clearMe(){
   try{ localStorage.removeItem('sm_name'); localStorage.removeItem('sm_phone'); }catch(e){}
   document.cookie='sm_name=; max-age=0; path=/'; document.cookie='sm_phone=; max-age=0; path=/';
-  ['a','l','s'].forEach(function(pf){ var ne=document.getElementById(pf+'-name'), pe=document.getElementById(pf+'-phone'); if(ne)ne.value=''; if(pe)pe.value=''; });
+  ['a','l','s','lv'].forEach(function(pf){ var ne=document.getElementById(pf+'-name'), pe=document.getElementById(pf+'-phone'); if(ne)ne.value=''; if(pe)pe.value=''; });
   renderMeBar();
 }
 function prefill(p){
@@ -714,7 +784,7 @@ document.addEventListener('click', function(e){
 
 // 내 정보: 저장돼 있으면 상단에 표시 + 이름·연락처 입력칸에서 벗어날 때 자동 저장(매번 재입력 방지)
 renderMeBar();
-['a','l','s'].forEach(function(pf){
+['a','l','s','lv'].forEach(function(pf){
   ['name','phone'].forEach(function(fld){
     var el=document.getElementById(pf+'-'+fld);
     if(el) el.addEventListener('blur', function(){ var n=v(pf+'-name'), p=v(pf+'-phone'); if(n||p) saveMe(n,p); });

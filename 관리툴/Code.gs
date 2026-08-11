@@ -352,6 +352,42 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({ success: true, apps: apps }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+  // 리더 전용 — 본인(리더)이 개설한 모임의 승인 참여자 명단(이름·전화·성별) + 성비. 지인여부는 미포함
+  if (params && params.api === 'leadermeetings') {
+    var rName = String(params.name || '').replace(/\s/g, '');
+    var rPhone = normalizePhone_(params.phone || '');
+    var out = { success: true, ok: false, meetings: [] };
+    if (rName && rPhone) {
+      var members = getMembers_();
+      var me = null, genderByPhone = {};
+      members.forEach(function(m) {
+        var p = normalizePhone_(m.phone);
+        if (p) genderByPhone[p] = m.gender;
+        if (!me && p === rPhone && String(m.name).replace(/\s/g, '') === rName) me = m;
+      });
+      if (me) {
+        out.ok = true;
+        out.leaderName = me.name;
+        var myKey = me.name.replace(/\s/g, '');
+        var myEvents = getEvents_().filter(function(ev) { return String(ev.leader).replace(/\s/g, '') === myKey; });
+        var ws = getSheet('모임신청대기');
+        var wd = ws ? ws.getDataRange().getValues() : [];
+        out.meetings = myEvents.map(function(ev) {
+          var parts = [], males = 0, females = 0, unknown = 0;
+          for (var i = 1; i < wd.length; i++) {
+            if (String(wd[i][1] || '') !== ev.name) continue;
+            if (String(wd[i][4] || '') !== '승인') continue;
+            var ph = normalizePhone_(String(wd[i][3] || ''));
+            var g = genderByPhone[ph] || '';
+            if (g === '남') males++; else if (g === '여') females++; else unknown++;
+            parts.push({ name: String(wd[i][2] || ''), phone: ph, gender: g });
+          }
+          return { name: ev.name, korDate: fmtKorDate_(ev.date), status: ev.status, count: parts.length, males: males, females: females, unknown: unknown, participants: parts };
+        });
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+  }
   if (params && params.apply) {
     return HtmlService.createHtmlOutput(buildApplyPage(decodeURIComponent(params.apply)))
       .setTitle('모임 신청')
