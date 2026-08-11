@@ -118,6 +118,8 @@ textarea.in{height:84px;resize:none;line-height:1.5}
   </div>
 </div>
 
+<div id="me-bar"></div>
+
 <div class="wrap">
   <div class="sec">🔥 모집중인 모임 <span class="n" id="ev-cnt">…</span></div>
   <div id="list">
@@ -475,14 +477,44 @@ function submitStatus(){
     .catch(function(){ btn.disabled = false; btn.textContent = '조회하기'; showErr('s-err','error'); });
 }
 function closeSheet(){ document.getElementById('ov').classList.remove('open'); }
-function prefill(p){
-  try{
-    var n = localStorage.getItem('sm_name'), ph = localStorage.getItem('sm_phone');
-    if(n && !document.getElementById(p+'-name').value) document.getElementById(p+'-name').value = n;
-    if(ph && !document.getElementById(p+'-phone').value) document.getElementById(p+'-phone').value = ph;
-  }catch(e){}
+// 내 정보 저장 — 쿠키 + localStorage 병행 (카톡 인앱브라우저 등에서 localStorage가 안 남는 경우 대비)
+function smSetCookie(k,val){ try{ document.cookie = k+'='+encodeURIComponent(val)+'; max-age=31536000; path=/; samesite=lax'; }catch(e){} }
+function smGetCookie(k){ try{ var m=document.cookie.match('(?:^|; )'+k+'=([^;]*)'); return m?decodeURIComponent(m[1]):''; }catch(e){ return ''; } }
+function getMe(){
+  var n='',p='';
+  try{ n=localStorage.getItem('sm_name')||''; p=localStorage.getItem('sm_phone')||''; }catch(e){}
+  if(!n) n=smGetCookie('sm_name');
+  if(!p) p=smGetCookie('sm_phone');
+  return { name:n, phone:p };
 }
-function saveMe(n,p){ try{ localStorage.setItem('sm_name',n); localStorage.setItem('sm_phone',p); }catch(e){} }
+function saveMe(n,p){
+  n=String(n||'').trim(); p=String(p||'').trim();
+  if(n){ try{ localStorage.setItem('sm_name',n); }catch(e){} smSetCookie('sm_name',n); }
+  if(p){ try{ localStorage.setItem('sm_phone',p); }catch(e){} smSetCookie('sm_phone',p); }
+  renderMeBar();
+}
+function clearMe(){
+  try{ localStorage.removeItem('sm_name'); localStorage.removeItem('sm_phone'); }catch(e){}
+  document.cookie='sm_name=; max-age=0; path=/'; document.cookie='sm_phone=; max-age=0; path=/';
+  ['a','l','s'].forEach(function(pf){ var ne=document.getElementById(pf+'-name'), pe=document.getElementById(pf+'-phone'); if(ne)ne.value=''; if(pe)pe.value=''; });
+  renderMeBar();
+}
+function prefill(p){
+  var me=getMe();
+  var ne=document.getElementById(p+'-name'), pe=document.getElementById(p+'-phone');
+  if(me.name && ne && !ne.value) ne.value=me.name;
+  if(me.phone && pe && !pe.value) pe.value=me.phone;
+}
+function renderMeBar(){
+  var me=getMe(); var bar=document.getElementById('me-bar'); if(!bar) return;
+  if(me.name || me.phone){
+    bar.innerHTML = '<div style="max-width:560px;margin:14px auto 0;padding:0 16px"><div style="background:#fff;border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:11px;box-shadow:0 2px 10px rgba(91,91,214,.07)">'
+      + '<span style="font-size:20px">👤</span>'
+      + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#333">'+esc(me.name||'')+'<span style="color:#aaa;font-weight:500;font-size:12px"> 님으로 저장됨</span></div>'
+      + '<div style="font-size:11px;color:#999;margin-top:1px">'+esc(me.phone||'')+' · 신청·조회 시 자동 입력돼요</div></div>'
+      + '<a href="#" onclick="clearMe();return false" style="font-size:12px;color:#c92a2a;text-decoration:none;font-weight:700;white-space:nowrap">변경</a></div></div>';
+  } else { bar.innerHTML=''; }
+}
 function v(id){ return document.getElementById(id).value.trim(); }
 function hideErr(id){ var el = document.getElementById(id); el.classList.remove('show'); el.innerHTML = ''; }
 function showErr(id, code){ var el = document.getElementById(id); el.innerHTML = errHtml(code); el.classList.add('show'); }
@@ -680,6 +712,14 @@ document.addEventListener('click', function(e){
   if(e.target && e.target.closest && !e.target.closest('.loc-wrap')) hideLocResults();
 });
 
+// 내 정보: 저장돼 있으면 상단에 표시 + 이름·연락처 입력칸에서 벗어날 때 자동 저장(매번 재입력 방지)
+renderMeBar();
+['a','l','s'].forEach(function(pf){
+  ['name','phone'].forEach(function(fld){
+    var el=document.getElementById(pf+'-'+fld);
+    if(el) el.addEventListener('blur', function(){ var n=v(pf+'-name'), p=v(pf+'-phone'); if(n||p) saveMe(n,p); });
+  });
+});
 loadEvents();
 initKakao();
 </script>
