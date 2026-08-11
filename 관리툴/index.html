@@ -461,9 +461,21 @@ select.form-input{cursor:pointer}
     <div id="app-detail-content"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('appDetail')">닫기</button>
+      <button class="btn btn-sm" style="background:#e7f5ff;color:#1971c2;border:1px solid #a5d8ff" onclick="smsCurrentApp()">📩 문자</button>
       <button id="btn-reject" class="btn btn-danger" onclick="doReject()">거절</button>
       <button id="btn-approve" class="btn btn-success" onclick="doApprove()">승인 → 회원등록</button>
     </div>
+  </div>
+</div>
+
+<!-- 문자 보내기 모달 -->
+<div id="modal-sms" class="modal-overlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">📩 문자 보내기</div>
+    <div style="font-size:13px;color:#444;margin-bottom:4px">받는 사람: <b id="sms-who"></b></div>
+    <div style="font-size:11px;color:#aaa;margin-bottom:12px">양식을 고르면 이름(<code>000</code>)이 자동으로 채워져 문자앱으로 연결돼요. 📱 <b>휴대폰</b>에서 사용하세요.</div>
+    <div id="sms-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('sms')">닫기</button></div>
   </div>
 </div>
 
@@ -1421,6 +1433,68 @@ function toggleHist(id, el){
   if(tag) tag.textContent = opened ? '▾ 펼치기' : '▴ 접기';
 }
 
+// ===== 문자(SMS) 양식 — '000' 자리에 이름 치환, 문자앱으로 연결 =====
+var SMS_TEMPLATES = [
+  { name:'📞 TM 전 (신원확인 예고)', body:'안녕하세요^^ 000님,\n\n2030 안산 소모임 운영자입니다😊\n\n1회 신원확인을 위해서 운영자가 전화 드릴 예정입니다💜' },
+  { name:'📩 TM 후 (링크 안내)', body:'🫧 리마인드 안내드려요!\n\n▫️ 모임공지방 입장\n링크를 통해 모임공지방에 입장해주세요 :)\n\n▫️ 모임 신청하기\n관심 있는 모임 신청 후, 해당 모임 채팅방에도 꼭 입장해주세요❕\n※ 모임공지방과 모임별 채팅방은 서로 다른 채팅방입니다.\n\n▫️ 입장 안내\n원활한 모임 진행을 위해 각 채팅방 입장을 꼭 부탁드려요 🤍\n입장이 확인되지 않을 경우 부득이하게 가입 또는 모임 신청이 정리될 수 있습니다.\n\n▫️ 모임 개설 안내\n직접 모임을 개설하실 경우 1:1 건의 링크와 운영규칙을 확인하신 후 개설해주세요❕\n\n🫶 모두가 편하게 참여할 수 있는 모임을 위한 안내이니\n확인 부탁드릴게요 :)\n\nhttps://open.kakao.com/o/geqbxCBi\n비밀번호:7942' },
+  { name:'☎️ 부재중 (연락 안됨)', body:'안녕하세요, 000님 😊\n2030 소모임 관련하여 간단히 안내드리려고 전화드렸는데 연결이 어려워 문자드립니다.\n\n▫️ 모임공지방 입장\n링크를 통해 모임공지방에 들어와 주세요❕\n※ 모임공지방은 운영자만 소통 가능하며, 문의사항은 1대1 건의링크를 이용해주세요😉\n\n▫️ 관심 있는 모임 신청하기\n모임공지방에서 신설모임을 확인하신 후, 관심 있는 모임을 신청하고 해당 신설모임 채팅방에 입장해주세요.\n※ 단체모임공지방과는 별도의 채팅방입니다❕❕\n\n▫️ 입장 필수 안내\n모임공지방과 신청하신 모임 채팅방에 3일 이내 입장하지 않을 경우 가입 거절 또는 모임 취소 처리될 수 있으니 꼭 확인해주세요❕\n\n▫️ 모임 개설 안내\n직접 모임 개설을 원하실 경우, 1대1 건의링크와 운영규칙을 확인하신 후 개설해주세요❕\n\n공지 내용을 꼼꼼히 확인하신 후\n**"네" 또는 "알겠습니다"**라고 답장 부탁드립니다☺️\n\n답장 확인 후 바로 링크 보내드리겠습니다.\n감사합니다🍀' },
+  { name:'🟡 가입취소 처리', body:'안녕하세요 :)\n오픈채팅방 입장 기간 내 입장이 확인되지 않아\n가입 신청이 취소 처리되었음을 안내드립니다.\n\n혹시 확인이 늦으셨거나 사정이 있으셨다면 괜찮습니다 😊\n다시 참여를 원하실 경우 언제든 새롭게 가입 신청해주세요!\n\n원활한 모임 운영을 위한 절차이니 너그럽게 양해 부탁드리며,\n관심 가져주셔서 감사합니다 🤍' },
+  { name:'🟡 모임취소 처리', body:'안녕하세요 :)\n신청해주신 모임에 오픈채팅방 입장이 확인되지 않아\n이번 신청이 취소 처리되었음을 안내드립니다.\n\n혹시 확인이 늦으셨거나 입장이 어려우셨던 경우라면 괜찮습니다 😊\n참여를 원하실 경우 다시 신청해주시면 감사하겠습니다.\n\n원활한 모임 운영을 위한 안내인 점 양해 부탁드리며,\n신청해주셔서 감사합니다 🤍' }
+];
+var smsTarget = { phone:'', name:'' };
+function openSmsFor(phone, name){
+  smsTarget = { phone:String(phone||''), name:String(name||'') };
+  document.getElementById('sms-who').textContent = (smsTarget.name||'(이름없음)') + ' · ' + (smsTarget.phone||'번호없음');
+  document.getElementById('sms-list').innerHTML = SMS_TEMPLATES.map(function(t,i){
+    var preview = escHtml(t.body.replace(/\n+/g,' ').slice(0,42));
+    return '<div style="border:1px solid #e8e8f0;border-radius:10px;padding:10px 12px">'
+      + '<div style="font-weight:600;font-size:13px;margin-bottom:2px">'+escHtml(t.name)+'</div>'
+      + '<div style="font-size:11px;color:#999;margin-bottom:8px;line-height:1.4">'+preview+'…</div>'
+      + '<div style="display:flex;gap:6px">'
+      +   '<button class="btn btn-primary btn-sm" style="flex:1" onclick="sendSms('+i+')">📩 문자앱 열기</button>'
+      +   '<button class="btn btn-secondary btn-sm" onclick="copySms('+i+')">📋 복사</button>'
+      + '</div></div>';
+  }).join('');
+  openModal('sms');
+}
+function smsFilled(i){ return SMS_TEMPLATES[i].body.replace(/000/g, smsTarget.name || '000'); }
+function sendSms(i){
+  var p = String(smsTarget.phone||'').replace(/[^0-9]/g,'');
+  if(!p){ toast('전화번호가 없어요'); return; }
+  var ios = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  window.location.href = 'sms:'+p+(ios?'&body=':'?body=')+encodeURIComponent(smsFilled(i));
+}
+function copySms(i){
+  navigator.clipboard.writeText(smsFilled(i)).then(function(){ toast('📋 문자 내용 복사됨 — 붙여넣기 하세요'); }).catch(function(){ toast('복사 실패'); });
+}
+function smsCurrentApp(){
+  var a = A.find(function(x){ return x.id===currentAppId; });
+  if(a) openSmsFor(a.phone, a.name);
+}
+
+// 성비 분포 막대 (재사용) — genders: ['남','여',...], 반환 HTML
+function genderBarHtml(genders, label){
+  var male=0, female=0, unknown=0;
+  (genders||[]).forEach(function(g){ g=String(g||'').trim(); if(g==='남')male++; else if(g==='여')female++; else unknown++; });
+  var total = (genders||[]).length;
+  if(!total) return '';
+  var known = male+female;
+  var mp = known ? Math.round(male/known*100) : 0;
+  var fp = known ? 100-mp : 0;
+  return '<div style="background:#f5f5fb;border-radius:10px;padding:11px 13px;margin-bottom:14px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap">'
+    +   '<span style="font-size:12px;font-weight:700;color:#555">👥 '+(label||'성비')+' <span style="color:#aaa;font-weight:500">· 총 '+total+'명</span></span>'
+    +   '<span style="font-size:12px;font-weight:700"><span style="color:#1971c2">남 '+male+'</span> · <span style="color:#e64980">여 '+female+'</span>'+(unknown?' · <span style="color:#aaa">미상 '+unknown+'</span>':'')+'</span>'
+    + '</div>'
+    + '<div style="display:flex;height:12px;border-radius:6px;overflow:hidden;background:#e9e9f2">'
+    +   (male?'<div style="width:'+mp+'%;background:#4dabf7"></div>':'')
+    +   (female?'<div style="width:'+fp+'%;background:#f783ac"></div>':'')
+    + '</div>'
+    + (known?'<div style="font-size:10.5px;color:#999;margin-top:5px">남 '+mp+'% · 여 '+fp+'%'+(unknown?' · 성별미상 '+unknown+'명 제외':'')+'</div>'
+            :'<div style="font-size:10.5px;color:#bbb;margin-top:5px">성별 정보가 없어요</div>')
+    + '</div>';
+}
+
 function renderApplicants(list, eventName) {
   const el = document.getElementById('applicants-content');
   const pending = list.filter(a=>a.status==='대기중');
@@ -1482,22 +1556,27 @@ function renderApplicants(list, eventName) {
     }
     const eName = eventName.replace(/'/g,"\\'");
     const aName = String(a.name||'').replace(/'/g,"\\'");
+    const aPhone = String(a.phone||'').replace(/'/g,"\\'");
+    const smsBtn = `<button class="btn btn-sm" style="background:#e7f5ff;color:#1971c2;border:1px solid #a5d8ff" onclick="openSmsFor('${aPhone}','${aName}')">📩 문자</button>`;
     let actions;
     if(a.status==='대기중'){
       actions = `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
           <button class="btn btn-success btn-sm" onclick="setApplicant(${a.id},'승인','${eName}','${aName}')">승인</button>
           <button class="btn btn-danger btn-sm" onclick="setApplicant(${a.id},'거절','${eName}','${aName}')">거절</button>
+          ${smsBtn}
           <button class="btn btn-secondary btn-sm" onclick="cancelApplicant(${a.id},'${eName}')">🚫 취소</button>
          </div>`;
     } else if(a.status==='승인'){
       actions = `<div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
           ${bApp(a.status)}
           <button class="btn btn-sm" style="background:#f0eefe;color:#5b46c4;border:1px solid #ddd6fe" onclick="copyJoinNotice('${eName}','${aName}')">📋 안내문 복사</button>
+          ${smsBtn}
           <button class="btn btn-secondary btn-sm" onclick="cancelApplicant(${a.id},'${eName}')">🚫 신청 취소</button>
          </div>`;
     } else {
       actions = `<div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           ${bApp(a.status)}
+          ${smsBtn}
           ${a.status==='취소' ? `<button class="btn btn-secondary btn-sm" onclick="setApplicant(${a.id},'대기중','${eName}','${aName}')">↩︎ 되돌리기</button>` : ''}
          </div>`;
     }
@@ -1523,7 +1602,12 @@ function renderApplicants(list, eventName) {
     html += `<div style="font-size:12px;color:#888;font-weight:600;margin:14px 0 10px">✅ 처리 완료 (${done.length}명)</div>`;
     html += done.map(a=>buildCard(a,false)).join('');
   }
-  el.innerHTML = html;
+  // 성비 분포 — 승인 참여자 기준(없으면 미승인 포함 신청자 기준), 회원 성별로 집계
+  const approved = list.filter(a=>a.status==='승인');
+  const pool = approved.length ? approved : list.filter(a=>a.status!=='취소' && a.status!=='거절');
+  const genders = pool.map(a=>{ const m = M.find(x=>normPhone(x.phone)===normPhone(a.phone)); return m ? m.gender : ''; });
+  const gbar = genderBarHtml(genders, approved.length ? '승인 참여자 성비' : '신청자 성비 (미승인 포함)');
+  el.innerHTML = gbar + html;
 }
 
 // 승인된 참여자에게 보낼 안내문 생성 (모임정보 + 톡방 링크·입장코드)
@@ -1635,6 +1719,7 @@ function renderMembers(list) {
       <td>${bM(m.status)}</td>
       <td onclick="event.stopPropagation()" style="white-space:nowrap;display:flex;gap:4px;align-items:center;padding:8px 10px">
         ${flagBtn}
+        <button class="btn btn-sm" style="font-size:11px;padding:3px 7px;background:#e7f5ff;color:#1971c2;border:1px solid #a5d8ff" onclick="openSmsFor('${m.phone}','${String(m.name).replace(/'/g,"\\'")}')">📩</button>
         <button class="btn btn-sm" style="font-size:11px;padding:3px 7px" onclick="openEditMember(${m.id})">✏️</button>
         <button class="btn btn-sm" style="font-size:11px;padding:3px 7px;background:#fff5f5;color:#c92a2a;border:1px solid #ffd0d0" onclick="openWarningForMember('${m.name}')">⚠️</button>
         ${m.status==='제재'?`<button class="btn btn-secondary btn-sm" style="font-size:11px;padding:3px 7px" onclick="restoreMember(${m.id})">복구</button>`:''}
