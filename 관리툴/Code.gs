@@ -588,7 +588,10 @@ function getAllApplicants() {
 
 function updateApplicantStatus(rowId, status) {
   requireAuth_();
-  getSheet('모임신청대기').getRange(rowId, 5).setValue(status);
+  var sheet = getSheet('모임신청대기');
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '대상을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  sheet.getRange(r, 5).setValue(status);
   return { success: true };
 }
 
@@ -970,6 +973,12 @@ function findRowByRid_(sheet, rid) {
   }
   return -1;
 }
+// 클라이언트가 보낸 값이 rid('r...')면 현재 행번호로 역조회, 순수 숫자면 행번호로 그대로 사용(구버전 호환). 못 찾으면 -1
+function resolveRow_(sheet, idOrRid) {
+  var s = String(idOrRid == null ? '' : idOrRid).trim();
+  if (/^\d+$/.test(s)) return parseInt(s, 10);
+  return findRowByRid_(sheet, s);
+}
 // 주요 시트 전체에 고유 ID 백필 (1단계: 기존 행)
 function backfillRowIds() {
   requireAuth_();
@@ -1105,8 +1114,10 @@ function syncMemberNameChange_(oldName, newName) {
 function updateMember(rowId, data) {
   requireAuth_();
   const sheet = getSheet('회원목록');
-  const oldName = String(sheet.getRange(rowId, 1).getValue() || '');
-  sheet.getRange(rowId, 1, 1, 8).setValues([[
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '회원을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  const oldName = String(sheet.getRange(r, 1).getValue() || '');
+  sheet.getRange(r, 1, 1, 8).setValues([[
     data.name, data.age, data.gender, normalizePhone_(data.phone),
     data.location, data.hobby, data.joinDate, data.status
   ]]);
@@ -1118,7 +1129,7 @@ function updateMember(rowId, data) {
     if (String(sheet.getRange(1, 10).getValue() || '').trim() !== '특이사항') {
       sheet.getRange(1, 10).setValue('특이사항').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
     }
-    sheet.getRange(rowId, 10).setValue(String(data.note || ''));
+    sheet.getRange(r, 10).setValue(String(data.note || ''));
   }
   let synced = 0;
   if (oldName && data.name && oldName !== data.name) {
@@ -1130,10 +1141,12 @@ function updateMember(rowId, data) {
 function toggleMemberFlag(rowId, flag) {
   requireAuth_();
   const sheet = getSheet('회원목록');
-  if (sheet.getLastColumn() < 9) {
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '회원을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  if (String(sheet.getRange(1, 9).getValue() || '').trim() !== '지인여부') {
     sheet.getRange(1, 9).setValue('지인여부').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
   }
-  sheet.getRange(rowId, 9).setValue(flag);
+  sheet.getRange(r, 9).setValue(flag);
   return { success: true };
 }
 
@@ -1150,7 +1163,10 @@ function addMember(data) {
 
 function updateMemberStatus(rowId, status) {
   requireAuth_();
-  getSheet('회원목록').getRange(rowId, 8).setValue(status);
+  var sheet = getSheet('회원목록');
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '회원을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  sheet.getRange(r, 8).setValue(status);
   return { success: true };
 }
 
@@ -1266,28 +1282,33 @@ function addEvent(data) {
 
 function updateEventStatus(rowId, status) {
   requireAuth_();
-  getSheet('모임목록').getRange(rowId, 6).setValue(status);
+  var sheet = getSheet('모임목록');
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '모임을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  sheet.getRange(r, 6).setValue(status);
   return { success: true };
 }
 
 function updateEvent(rowId, data) {
   requireAuth_();
   const sheet = getSheet('모임목록');
-  const oldName = String(sheet.getRange(rowId, 1).getValue() || '');
-  sheet.getRange(rowId, 1, 1, 5).setValues([[
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '모임을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  const oldName = String(sheet.getRange(r, 1).getValue() || '');
+  sheet.getRange(r, 1, 1, 5).setValues([[
     data.name, data.date, data.location, data.maxMembers, data.leader
   ]]);
   if (data.description !== undefined) {
     ensureEventDescCol_();
-    sheet.getRange(rowId, 7).setValue(data.description);
+    sheet.getRange(r, 7).setValue(data.description);
   }
   if (data.chatLink !== undefined) {
     ensureEventChatCol_();
-    sheet.getRange(rowId, 8).setValue(String(data.chatLink || '').trim());
+    sheet.getRange(r, 8).setValue(String(data.chatLink || '').trim());
   }
   if (data.chatCode !== undefined) {
     ensureEventChatCol_();
-    setTextCell_(sheet.getRange(rowId, 9), String(data.chatCode || '').trim());  // 입장코드 앞자리 0 보존
+    setTextCell_(sheet.getRange(r, 9), String(data.chatCode || '').trim());  // 입장코드 앞자리 0 보존
   }
   // 모임명 변경 시 신청 내역의 모임명도 동기화
   if (oldName && data.name && oldName !== data.name) {
@@ -1306,8 +1327,10 @@ function updateEvent(rowId, data) {
 function deleteEvent(rowId) {
   requireAuth_();
   const sheet = getSheet('모임목록');
-  const name = String(sheet.getRange(rowId, 1).getValue() || '');
-  sheet.deleteRow(rowId);
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '모임을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  const name = String(sheet.getRange(r, 1).getValue() || '');
+  sheet.deleteRow(r);
   // 연결된 신청 내역도 함께 삭제 (아래에서부터 지워 행 밀림 방지)
   let removed = 0;
   ['신청현황', '모임신청대기'].forEach(function(sn) {
@@ -1549,7 +1572,9 @@ function setAppAssignee(rowId, name) {
   requireAuth_();
   const sheet = getSheet('가입신청');
   ensureAppExtraCols_(sheet);
-  sheet.getRange(rowId, 11).setValue(name);
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '신청을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  sheet.getRange(r, 11).setValue(name);
   return { success: true };
 }
 
@@ -1557,7 +1582,9 @@ function setAppVerifyStatus(rowId, status) {
   requireAuth_();
   const sheet = getSheet('가입신청');
   ensureAppExtraCols_(sheet);
-  sheet.getRange(rowId, 12).setValue(status);
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '신청을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  sheet.getRange(r, 12).setValue(status);
   return { success: true };
 }
 
@@ -1616,7 +1643,9 @@ function memberExists_(name, phone) {
 function setApplicationStatus_(rowId, status) {
   const sheet = getSheet('가입신청');
   if (!sheet) return { success: false, message: '가입신청 시트를 찾을 수 없어요' };
-  const row = sheet.getRange(rowId, 1, 1, 10).getValues()[0];
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '신청 정보를 찾을 수 없어요 (새로고침 후 다시 시도)' };
+  const row = sheet.getRange(r, 1, 1, 10).getValues()[0];
   if (!row || !String(row[1] || '').trim()) return { success: false, message: '신청 정보를 찾을 수 없어요 (새로고침 후 다시 시도)' };
   var existed = false;
   if (status === '승인') {
@@ -1628,7 +1657,7 @@ function setApplicationStatus_(rowId, status) {
       ]);
     }
   }
-  sheet.getRange(rowId, 10).setValue(status);
+  sheet.getRange(r, 10).setValue(status);
   return { success: true, existed: existed };
 }
 
@@ -1651,7 +1680,9 @@ function bulkApproveApplications(rowIds) {
   const memberSheet = getSheet('회원목록');
   let count = 0, skipped = 0;
   rowIds.forEach(function(rowId) {
-    const row = sheet.getRange(rowId, 1, 1, 10).getValues()[0];
+    var r = resolveRow_(sheet, rowId);
+    if (r < 2) return;
+    const row = sheet.getRange(r, 1, 1, 10).getValues()[0];
     const st = String(row[9] || '').trim();
     if (st && st !== '대기중') return;   // 이미 승인/거절된 건 건너뜀 (빈칸=대기중 간주)
     // 이미 회원이면 추가 생략 (같은 사람의 중복 신청을 함께 선택해도 한 번만 등록됨)
@@ -1664,7 +1695,7 @@ function bulkApproveApplications(rowIds) {
         '활성'
       ]);
     }
-    sheet.getRange(rowId, 10).setValue('승인');
+    sheet.getRange(r, 10).setValue('승인');
     count++;
   });
   return { success: true, count: count, skipped: skipped };
@@ -1672,7 +1703,10 @@ function bulkApproveApplications(rowIds) {
 
 function rejectApplication(rowId) {
   requireAuth_();
-  getSheet('가입신청').getRange(rowId, 10).setValue('거절');
+  var sheet = getSheet('가입신청');
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '신청을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  sheet.getRange(r, 10).setValue('거절');
   return { success: true };
 }
 
@@ -1937,7 +1971,9 @@ function makeUniqueEventName_(rawName, leader) {
 function approveLeaderApp(rowId) {
   requireAuth_();
   const sheet = getSheet('리더신청');
-  const row = sheet.getRange(rowId, 1, 1, 15).getValues()[0];
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '리더 신청을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  const row = sheet.getRange(r, 1, 1, 15).getValues()[0];
   const eventSheet = getSheet('모임목록');
   const dates = [row[5], row[6], row[7]].filter(d => d && String(d).trim() !== '');
   // 회차별로 쪼개지 않고 한 모임으로 묶어 생성 — 한 번 신청 = 전 회차 참석
@@ -1949,13 +1985,16 @@ function approveLeaderApp(rowId) {
   // 리더가 제출한 오픈채팅 링크(14열)·입장코드(15열)를 모임목록 8·9열로 복사
   eventSheet.appendRow([eventName, dateStr, row[8], row[9], row[1], '모집중', row[10], String(row[13] || '').trim(), String(row[14] || '').trim()]);
   setTextCell_(eventSheet.getRange(eventSheet.getLastRow(), 9), String(row[14] || '').trim());  // 입장코드 앞자리 0 보존
-  sheet.getRange(rowId, 13).setValue('승인');
+  sheet.getRange(r, 13).setValue('승인');
   return { success: true };
 }
 
 function rejectLeaderApp(rowId) {
   requireAuth_();
-  getSheet('리더신청').getRange(rowId, 13).setValue('거절');
+  var sheet = getSheet('리더신청');
+  var r = resolveRow_(sheet, rowId);
+  if (r < 2) return { success: false, message: '리더 신청을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
+  sheet.getRange(r, 13).setValue('거절');
   return { success: true };
 }
 
