@@ -1446,9 +1446,11 @@ function openSmsFor(phone, name){
   smsTarget = { phone:String(phone||''), name:String(name||'') };
   document.getElementById('sms-who').textContent = (smsTarget.name||'(이름없음)') + ' · ' + (smsTarget.phone||'번호없음');
   document.getElementById('sms-list').innerHTML = SMS_TEMPLATES.map(function(t,i){
-    var preview = escHtml(t.body.replace(/\n+/g,' ').slice(0,42));
+    var hasName = t.body.indexOf('000') >= 0;
+    var filledBody = t.body.replace(/000/g, smsTarget.name || '000');
+    var preview = escHtml(filledBody.replace(/\n+/g,' ').slice(0,44));
     return '<div style="border:1px solid #e8e8f0;border-radius:10px;padding:10px 12px">'
-      + '<div style="font-weight:600;font-size:13px;margin-bottom:2px">'+escHtml(t.name)+'</div>'
+      + '<div style="font-weight:600;font-size:13px;margin-bottom:2px">'+escHtml(t.name)+(hasName&&smsTarget.name?' <span style="font-size:10px;color:#1971c2;font-weight:600">· 이름 자동 채움</span>':'')+'</div>'
       + '<div style="font-size:11px;color:#999;margin-bottom:8px;line-height:1.4">'+preview+'…</div>'
       + '<div style="display:flex;gap:6px">'
       +   '<button class="btn btn-primary btn-sm" style="flex:1" onclick="sendSms('+i+')">📩 문자앱 열기</button>'
