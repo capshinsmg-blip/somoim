@@ -573,7 +573,7 @@ function getEventApplicants(eventName) {
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
   return data.slice(1)
-    .map((row, i) => ({ id: i + 2, eventName: String(row[1]||''), name: String(row[2]||''), phone: normalizePhone_(String(row[3]||'')), status: String(row[4]||'대기중') }))
+    .map((row, i) => ({ id: i + 2, rid: rowIdOf_(sheet, row, i + 2), eventName: String(row[1]||''), name: String(row[2]||''), phone: normalizePhone_(String(row[3]||'')), status: String(row[4]||'대기중') }))
     .filter(r => r.eventName === eventName);
 }
 
@@ -583,7 +583,7 @@ function getAllApplicants() {
   if (!sheet) return [];
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
-  return data.slice(1).map((row, i) => ({ id: i + 2, eventName: String(row[1]||''), name: String(row[2]||''), phone: normalizePhone_(String(row[3]||'')), status: String(row[4]||'대기중') }));
+  return data.slice(1).map((row, i) => ({ id: i + 2, rid: rowIdOf_(sheet, row, i + 2), eventName: String(row[1]||''), name: String(row[2]||''), phone: normalizePhone_(String(row[3]||'')), status: String(row[4]||'대기중') }));
 }
 
 function updateApplicantStatus(rowId, status) {
@@ -952,6 +952,24 @@ function ensureRowIds_(sheetName) {
   if (made > 0) range.setValues(vals);
   return made;
 }
+// 행의 고유 ID를 읽고, 없으면(새 행) 즉석 생성·기록해서 반환 (1b: 새 행 자동 부여)
+function rowIdOf_(sheet, row, rowNum) {
+  var rid = String((row && row[ROW_ID_COL - 1]) || '').trim();
+  if (!rid) { rid = genRowId_(); try { sheet.getRange(rowNum, ROW_ID_COL).setValue(rid); } catch (e) {} }
+  return rid;
+}
+// rid로 시트에서 현재 행 번호를 찾음 (1c: 행번호 대신 안정적 ID로 대상 지정). 없으면 -1
+function findRowByRid_(sheet, rid) {
+  rid = String(rid || '').trim();
+  if (!sheet || !rid) return -1;
+  var last = sheet.getLastRow();
+  if (last < 2) return -1;
+  var col = sheet.getRange(2, ROW_ID_COL, last - 1, 1).getValues();
+  for (var i = 0; i < col.length; i++) {
+    if (String(col[i][0] || '').trim() === rid) return i + 2;
+  }
+  return -1;
+}
 // 주요 시트 전체에 고유 ID 백필 (1단계: 기존 행)
 function backfillRowIds() {
   requireAuth_();
@@ -1045,6 +1063,7 @@ function getMembers_() {
   if (data.length <= 1) return [];
   return data.slice(1).map((row, i) => ({
     id: i + 2,
+    rid: rowIdOf_(sheet, row, i + 2),
     name: String(row[0] || ''),
     age: normalizeAge_(String(row[1] || '')),
     gender: normalizeGender_(String(row[2] || '')),
@@ -1194,6 +1213,7 @@ function getEvents_() {
   if (data.length <= 1) return [];
   return data.slice(1).map((row, i) => ({
     id: i + 2,
+    rid: rowIdOf_(sheet, row, i + 2),
     name: String(row[0] || ''),
     date: fmtGasDate_(row[1]),
     location: String(row[2] || ''),
@@ -1500,6 +1520,7 @@ function getApplications() {
   if (data.length <= 1) return [];
   return data.slice(1).map((row, i) => ({
     id: i + 2,
+    rid: rowIdOf_(sheet, row, i + 2),
     timestamp: String(row[0] || ''),
     name: String(row[1] || ''),
     age: normalizeAge_(String(row[2] || '')),
@@ -1870,6 +1891,7 @@ function getLeaderApps() {
   if (data.length <= 1) return [];
   return data.slice(1).map((row, i) => ({
     id: i + 2,
+    rid: rowIdOf_(sheet, row, i + 2),
     timestamp: String(row[0] || ''),
     name: String(row[1] || ''),
     phone: normalizePhone_(String(row[2] || '')),
