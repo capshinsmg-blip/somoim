@@ -2614,6 +2614,28 @@ function submitCode(){
     .checkCode(code);
 }
 
+// 모든 google.script.run 호출에 '기본' 실패 알림 부착 — 개별 withFailureHandler가 있으면 그게 우선.
+// (구조 개선 #3: 조용히 실패하던 호출들이 이제 최소한 토스트로 드러남)
+(function(){
+  try{
+    if(!(window.google && google.script)) return;
+    var d = Object.getOwnPropertyDescriptor(google.script, 'run');
+    if(!d || typeof d.get !== 'function') return;
+    var realGet = d.get;
+    Object.defineProperty(google.script, 'run', {
+      configurable: true,
+      get: function(){
+        var r = realGet.call(google.script);
+        try{
+          return r.withFailureHandler(function(e){
+            try{ toast('⚠️ 처리 실패: ' + ((e && e.message) ? e.message : '새로고침 후 다시 시도해주세요')); }catch(_){}
+          });
+        }catch(_){ return r; }
+      }
+    });
+  }catch(_){}
+})();
+
 bootAuth();
 </script>
 </body>
