@@ -900,6 +900,32 @@ function getSheet(name) {
   return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
 }
 
+// ===== 안전: 데이터 백업 + 공동관리자 =====
+// 스프레드시트 전체를 타임스탬프 사본으로 복제 (큰 변경 전 되돌릴 지점)
+function backupSpreadsheet() {
+  requireAuth_();
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var stamp = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd_HHmm');
+    var copy = ss.copy('[백업] ' + ss.getName() + ' ' + stamp);
+    return { success: true, name: copy.getName(), url: copy.getUrl() };
+  } catch (e) {
+    return { success: false, message: String((e && e.message) || e) };
+  }
+}
+// 공동관리자(편집자) 추가 — 소유 계정이 막혀도 데이터에 접근 가능하게
+function grantCoManager(email) {
+  requireAuth_();
+  email = String(email || '').trim();
+  if (!email || email.indexOf('@') === -1) return { success: false, message: '이메일 형식을 확인해주세요' };
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().addEditor(email);
+    return { success: true, email: email };
+  } catch (e) {
+    return { success: false, message: String((e && e.message) || e) };
+  }
+}
+
 // ===== 시트 초기화 =====
 function initSheets() {
   requireAuth_();

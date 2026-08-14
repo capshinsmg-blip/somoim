@@ -226,6 +226,7 @@ select.form-input{cursor:pointer}
         <button class="btn btn-secondary btn-sm" onclick="autoAssign()">⚖️ 미배정 자동 분배</button>
         <button class="btn btn-secondary btn-sm" onclick="resetTriggersUI()">🔧 트리거 재설정</button>
         <button class="btn btn-secondary btn-sm" onclick="diagnoseDupUI()">🔍 중복 원인 진단</button>
+        <button class="btn btn-secondary btn-sm" onclick="openModal('safety')">🛡️ 백업·안전</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -476,6 +477,22 @@ select.form-input{cursor:pointer}
     <div style="font-size:11px;color:#aaa;margin-bottom:12px">양식을 고르면 이름(<code>000</code>)이 자동으로 채워져 문자앱으로 연결돼요. 📱 <b>휴대폰</b>에서 사용하세요.</div>
     <div id="sms-list" style="display:flex;flex-direction:column;gap:8px"></div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('sms')">닫기</button></div>
+  </div>
+</div>
+
+<!-- 백업 · 안전 모달 -->
+<div id="modal-safety" class="modal-overlay">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title">🛡️ 백업 · 안전</div>
+    <p style="font-size:12.5px;color:#888;line-height:1.6;margin-bottom:12px">큰 변경(고유 ID 도입 등) <b>전에</b> 데이터 백업을 눌러 그 시점 사본을 만들어두세요. 문제가 생겨도 되돌릴 수 있어요.</p>
+    <button class="btn btn-primary" style="width:100%" onclick="doBackup()">🛡️ 지금 데이터 백업</button>
+    <div id="safety-msg" style="font-size:12px;margin-top:10px;line-height:1.5"></div>
+    <div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px">
+      <p style="font-size:12.5px;color:#888;line-height:1.6;margin-bottom:8px">👥 <b>공동관리자</b>를 추가하면 이 계정이 막혀도 다른 계정으로 데이터에 접근할 수 있어요.</p>
+      <button class="btn btn-secondary" style="width:100%" onclick="doCoManager()">👥 공동관리자 추가 (dpfls9320@gmail.com)</button>
+      <div id="comgr-msg" style="font-size:12px;margin-top:8px;line-height:1.5"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('safety')">닫기</button></div>
   </div>
 </div>
 
@@ -1472,6 +1489,22 @@ function copySms(i){
 function smsCurrentApp(){
   var a = A.find(function(x){ return x.id===currentAppId; });
   if(a) openSmsFor(a.phone, a.name);
+}
+
+// 백업 · 공동관리자
+function doBackup(){
+  var m=document.getElementById('safety-msg'); m.style.color='#888'; m.textContent='백업 중... (수십 초 걸릴 수 있어요)';
+  google.script.run.withSuccessHandler(function(r){
+    if(r && r.success){ m.style.color='#2f9e44'; m.innerHTML='✅ 백업 완료: <b>'+r.name+'</b><br><a href="'+r.url+'" target="_blank" rel="noopener" style="color:#5b5bd6">→ 백업 파일 열기</a>'; }
+    else { m.style.color='#c92a2a'; m.innerHTML='백업 실패: '+((r&&r.message)||'')+'<br><span style="color:#888">권한 오류면 시트에서 <b>파일 → 사본 만들기</b>로 수동 백업하세요.</span>'; }
+  }).withFailureHandler(function(e){ m.style.color='#c92a2a'; m.innerHTML='백업 실패.<br><span style="color:#888">시트에서 <b>파일 → 사본 만들기</b>로 수동 백업하세요.</span>'; }).backupSpreadsheet();
+}
+function doCoManager(){
+  var m=document.getElementById('comgr-msg'); m.style.color='#888'; m.textContent='추가 중...';
+  google.script.run.withSuccessHandler(function(r){
+    if(r && r.success){ m.style.color='#2f9e44'; m.innerHTML='✅ <b>dpfls9320@gmail.com</b> 공동관리자로 추가됨 (시트 편집 권한).<br><span style="color:#888">배포까지 하려면 그 계정으로 시트 → 확장프로그램 → Apps Script를 한 번 열어 확인하세요.</span>'; }
+    else { m.style.color='#c92a2a'; m.textContent='추가 실패: '+((r&&r.message)||''); }
+  }).withFailureHandler(function(e){ m.style.color='#c92a2a'; m.textContent='추가 실패: '+((e&&e.message)||'다시 시도해주세요'); }).grantCoManager('dpfls9320@gmail.com');
 }
 
 // 성비 분포 막대 (재사용) — genders: ['남','여',...], 반환 HTML
