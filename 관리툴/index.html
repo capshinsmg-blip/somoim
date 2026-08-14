@@ -492,6 +492,11 @@ select.form-input{cursor:pointer}
       <button class="btn btn-secondary" style="width:100%" onclick="doCoManager()">👥 공동관리자 추가 (dpfls9320@gmail.com)</button>
       <div id="comgr-msg" style="font-size:12px;margin-top:8px;line-height:1.5"></div>
     </div>
+    <div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px">
+      <p style="font-size:12.5px;color:#888;line-height:1.6;margin-bottom:8px">🔑 <b>고유 ID 부여</b> — 각 회원·신청에 안정적 ID를 붙여요(구조개선 1단계). 기존 데이터에 ID 열만 추가하며 <b>기능은 안 바뀌어요</b>. 백업 후 눌러주세요.</p>
+      <button class="btn btn-secondary" style="width:100%" onclick="doBackfillIds()">🔑 고유 ID 부여 (기존 행)</button>
+      <div id="rid-msg" style="font-size:12px;margin-top:8px;line-height:1.6;white-space:pre-line"></div>
+    </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('safety')">닫기</button></div>
   </div>
 </div>
@@ -1505,6 +1510,13 @@ function doCoManager(){
     if(r && r.success){ m.style.color='#2f9e44'; m.innerHTML='✅ <b>dpfls9320@gmail.com</b> 공동관리자로 추가됨 (시트 편집 권한).<br><span style="color:#888">배포까지 하려면 그 계정으로 시트 → 확장프로그램 → Apps Script를 한 번 열어 확인하세요.</span>'; }
     else { m.style.color='#c92a2a'; m.textContent='추가 실패: '+((r&&r.message)||''); }
   }).withFailureHandler(function(e){ m.style.color='#c92a2a'; m.textContent='추가 실패: '+((e&&e.message)||'다시 시도해주세요'); }).grantCoManager('dpfls9320@gmail.com');
+}
+function doBackfillIds(){
+  var m=document.getElementById('rid-msg'); m.style.color='#888'; m.textContent='고유 ID 부여 중...';
+  google.script.run.withSuccessHandler(function(r){
+    if(r && r.success){ m.style.color='#2f9e44'; m.textContent='✅ 완료\n'+(r.lines||[]).join('\n'); }
+    else { m.style.color='#c92a2a'; m.textContent='실패: '+((r&&r.message)||''); }
+  }).withFailureHandler(function(e){ m.style.color='#c92a2a'; m.textContent='실패: '+((e&&e.message)||'다시 시도해주세요'); }).backfillRowIds();
 }
 
 // 성비 분포 막대 (재사용) — genders: ['남','여',...], 반환 HTML

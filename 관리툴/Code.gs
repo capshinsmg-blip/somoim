@@ -926,6 +926,44 @@ function grantCoManager(email) {
   }
 }
 
+// ===== 고유 ID (구조개선 #1) =====
+// 기존 컬럼·향후 확장 컬럼과 충돌하지 않도록 멀리 고정된 열에 ID를 둠 (현재 시트 최대 15열 → 20열 사용)
+var ROW_ID_COL = 20;
+var __ridSeq = 0;
+function genRowId_() {
+  __ridSeq++;   // 한 실행 안에서(백필 등 대량 생성) 카운터로 충돌 원천 차단
+  return 'r' + (new Date().getTime()).toString(36) + __ridSeq.toString(36) + Math.floor(Math.random() * 1679616).toString(36);
+}
+// 시트에 ID 헤더 보장 + 비어있는 행에 고유 ID 채움 (비파괴적, 반복 실행 안전). 반환: 새로 부여한 개수
+function ensureRowIds_(sheetName) {
+  var sheet = getSheet(sheetName);
+  if (!sheet) return 0;
+  if (String(sheet.getRange(1, ROW_ID_COL).getValue() || '').trim() !== 'ID') {
+    sheet.getRange(1, ROW_ID_COL).setValue('ID').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
+  }
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return 0;
+  var range = sheet.getRange(2, ROW_ID_COL, lastRow - 1, 1);
+  var vals = range.getValues();
+  var made = 0;
+  for (var i = 0; i < vals.length; i++) {
+    if (!String(vals[i][0] || '').trim()) { vals[i][0] = genRowId_(); made++; }
+  }
+  if (made > 0) range.setValues(vals);
+  return made;
+}
+// 주요 시트 전체에 고유 ID 백필 (1단계: 기존 행)
+function backfillRowIds() {
+  requireAuth_();
+  var sheets = ['회원목록', '가입신청', '모임신청대기', '모임목록', '리더신청'];
+  var lines = [];
+  sheets.forEach(function(s) {
+    try { lines.push(s + ': ' + ensureRowIds_(s) + '개 부여'); }
+    catch (e) { lines.push(s + ': 오류 (' + String((e && e.message) || e) + ')'); }
+  });
+  return { success: true, lines: lines };
+}
+
 // ===== 시트 초기화 =====
 function initSheets() {
   requireAuth_();
