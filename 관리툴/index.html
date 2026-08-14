@@ -932,19 +932,22 @@ function renderApps(list) {
   updateBulkBtn();
 }
 
+// rid 우선 전달: 목록에서 숫자 id로 항목을 찾아 그 고유 ID(rid)를 반환. 없으면 id 그대로(구버전 호환)
+function ridOf(list, id){ try{ var o=(list||[]).find(function(x){return x.id===id;}); return (o&&o.rid)?o.rid:id; }catch(e){ return id; } }
+
 function setAssignee(id, name) {
   const a = A.find(x=>x.id===id); if(a) a.assignee = name;
   google.script.run
     .withSuccessHandler(()=>toast(name ? `담당자: ${name} ✅` : '담당 해제됨'))
     .withFailureHandler(()=>toast('저장 실패. 다시 시도해주세요'))
-    .setAppAssignee(id, name);
+    .setAppAssignee(ridOf(A, id), name);
 }
 
 function setVerify(id, status) {
   const a = A.find(x=>x.id===id); if(a) a.verify = status;
   google.script.run
     .withFailureHandler(()=>toast('저장 실패. 다시 시도해주세요'))
-    .setAppVerifyStatus(id, status);
+    .setAppVerifyStatus(ridOf(A, id), status);
   renderApps(A);
   toast(status==='부재중' ? '📞 부재중 — 재컨택 목록에 추가됐어요' : '신원확인: '+status);
 }
@@ -1103,7 +1106,7 @@ function bulkApprove() {
   google.script.run.withSuccessHandler(r=>{
     toast(`✅ ${r.count}명 승인 완료` + (r.skipped ? ` (기존 회원 ${r.skipped}명은 중복 등록 생략)` : ''));
     loadApplications();
-  }).withFailureHandler(()=>toast('오류 발생')).bulkApproveApplications(ids);
+  }).withFailureHandler(()=>toast('오류 발생')).bulkApproveApplications(ids.map(function(x){return ridOf(A,x);}));
 }
 
 function openAppDetail(id) {
@@ -1161,7 +1164,7 @@ function approveRun(retried){
   }).withFailureHandler(err=>{
     if(!retried){ reauthThen(function(){ approveRun(true); }); return; }
     toast('승인 실패: '+((err && err.message) || '다시 시도해주세요'));
-  }).approveApplication(currentAppId);
+  }).approveApplication(ridOf(A, currentAppId));
 }
 
 function doReject(){ if(!confirm('이 신청자를 거절할까요?')) return; rejectRun(false); }
@@ -1171,7 +1174,7 @@ function rejectRun(retried){
   }).withFailureHandler(err=>{
     if(!retried){ reauthThen(function(){ rejectRun(true); }); return; }
     toast('거절 실패: '+((err && err.message) || '다시 시도해주세요'));
-  }).rejectApplication(currentAppId);
+  }).rejectApplication(ridOf(A, currentAppId));
 }
 
 // 처리된(승인/거절) 신청의 상태를 다시 변경 — 잘못 처리한 건 되돌리기
@@ -1189,7 +1192,7 @@ function changeAppStatusRun(status, retried){
   }).withFailureHandler(err=>{
     if(!retried){ reauthThen(function(){ changeAppStatusRun(status, true); }); return; }
     toast('변경 실패: '+((err && err.message) || '다시 시도해주세요'));
-  }).setApplicationStatus(currentAppId, status);
+  }).setApplicationStatus(ridOf(A, currentAppId), status);
 }
 
 // ===== 리더신청 =====
@@ -1271,7 +1274,7 @@ function doLeaderApprove() {
       const app = LA.find(x=>x.id===currentLeaderId);
       if(app){ openAnnounceModal(app); }
     } else toast('오류: '+r.message);
-  }).approveLeaderApp(currentLeaderId);
+  }).approveLeaderApp(ridOf(LA, currentLeaderId));
 }
 
 function openAnnounceModal(app) {
@@ -1608,23 +1611,23 @@ function renderApplicants(list, eventName) {
     let actions;
     if(a.status==='대기중'){
       actions = `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-          <button class="btn btn-success btn-sm" onclick="setApplicant(${a.id},'승인','${eName}','${aName}')">승인</button>
-          <button class="btn btn-danger btn-sm" onclick="setApplicant(${a.id},'거절','${eName}','${aName}')">거절</button>
+          <button class="btn btn-success btn-sm" onclick="setApplicant('${a.rid||a.id}','승인','${eName}','${aName}')">승인</button>
+          <button class="btn btn-danger btn-sm" onclick="setApplicant('${a.rid||a.id}','거절','${eName}','${aName}')">거절</button>
           ${smsBtn}
-          <button class="btn btn-secondary btn-sm" onclick="cancelApplicant(${a.id},'${eName}')">🚫 취소</button>
+          <button class="btn btn-secondary btn-sm" onclick="cancelApplicant('${a.rid||a.id}','${eName}')">🚫 취소</button>
          </div>`;
     } else if(a.status==='승인'){
       actions = `<div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
           ${bApp(a.status)}
           <button class="btn btn-sm" style="background:#f0eefe;color:#5b46c4;border:1px solid #ddd6fe" onclick="copyJoinNotice('${eName}','${aName}')">📋 안내문 복사</button>
           ${smsBtn}
-          <button class="btn btn-secondary btn-sm" onclick="cancelApplicant(${a.id},'${eName}')">🚫 신청 취소</button>
+          <button class="btn btn-secondary btn-sm" onclick="cancelApplicant('${a.rid||a.id}','${eName}')">🚫 신청 취소</button>
          </div>`;
     } else {
       actions = `<div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           ${bApp(a.status)}
           ${smsBtn}
-          ${a.status==='취소' ? `<button class="btn btn-secondary btn-sm" onclick="setApplicant(${a.id},'대기중','${eName}','${aName}')">↩︎ 되돌리기</button>` : ''}
+          ${a.status==='취소' ? `<button class="btn btn-secondary btn-sm" onclick="setApplicant('${a.rid||a.id}','대기중','${eName}','${aName}')">↩︎ 되돌리기</button>` : ''}
          </div>`;
     }
     const bg = isPending ? (isMember ? '#fff' : '#fff9f9') : '#f8f8fc';
@@ -1722,7 +1725,7 @@ function doLeaderReject() {
   if(!confirm('이 신청을 거절할까요?')) return;
   google.script.run.withSuccessHandler(()=>{
     closeModal('leaderDetail'); loadLeaderApps(); toast('거절 처리됐어요');
-  }).rejectLeaderApp(currentLeaderId);
+  }).rejectLeaderApp(ridOf(LA, currentLeaderId));
 }
 
 // ===== 회원 =====
@@ -1868,7 +1871,7 @@ function toggleMemberFlagUI(id, btn) {
     toast(newFlag ? '⭐ 지인으로 표시했어요' : '지인 표시를 해제했어요');
   }).withFailureHandler(()=>{
     m.flagged = !newFlag; toast('저장 실패. 다시 시도해주세요');
-  }).toggleMemberFlag(id, newFlag);
+  }).toggleMemberFlag(ridOf(M, id), newFlag);
 }
 
 function openEditMember(id) {
@@ -1917,7 +1920,7 @@ function saveMemberEdit() {
       toast('저장 실패. 다시 시도해주세요');
       btn.disabled=false; btn.textContent='저장';
     })
-    .updateMember(rowId, data);
+    .updateMember(ridOf(M, rowId), data);
 }
 
 // ===== 모임 =====
@@ -2133,7 +2136,7 @@ function saveEventEdit() {
       closeModal('editEvent'); loadEventsTab(); toast('모임 정보가 수정됐어요 ✅');
     })
     .withFailureHandler(()=>{ btn.disabled=false; btn.textContent='저장'; toast('저장 실패. 다시 시도해주세요'); })
-    .updateEvent(rowId, d);
+    .updateEvent(ridOf(E, rowId), d);
 }
 
 function deleteEventUI(id) {
@@ -2145,7 +2148,7 @@ function deleteEventUI(id) {
   google.script.run
     .withSuccessHandler(()=>{ loadEventsTab(); toast('🗑️ 모임이 삭제됐어요'); })
     .withFailureHandler(()=>toast('삭제 실패. 다시 시도해주세요'))
-    .deleteEvent(id);
+    .deleteEvent(ridOf(E, id));
 }
 
 function deleteRegUI(id) {
@@ -2214,17 +2217,17 @@ function submitReg() {
 }
 
 function changeEventStatus(id,s){
-  google.script.run.withSuccessHandler(()=>toast('모임 상태 변경 완료')).updateEventStatus(id,s);
+  google.script.run.withSuccessHandler(()=>toast('모임 상태 변경 완료')).updateEventStatus(ridOf(E, id),s);
 }
 function changeAttendance(id,s){
   google.script.run.withSuccessHandler(()=>toast('출석 처리 완료')).markAttendance(id,s);
 }
 function sanctionMember(id,name){
   if(!confirm(name+' 회원을 제재 처리할까요?')) return;
-  google.script.run.withSuccessHandler(()=>{loadMembers();toast('제재 처리됐어요');}).updateMemberStatus(id,'제재');
+  google.script.run.withSuccessHandler(()=>{loadMembers();toast('제재 처리됐어요');}).updateMemberStatus(ridOf(M, id),'제재');
 }
 function restoreMember(id){
-  google.script.run.withSuccessHandler(()=>{loadMembers();toast('복구 처리됐어요');}).updateMemberStatus(id,'활성');
+  google.script.run.withSuccessHandler(()=>{loadMembers();toast('복구 처리됐어요');}).updateMemberStatus(ridOf(M, id),'활성');
 }
 
 // 중복 회원 정리 — 먼저 중복 그룹을 보여주고 확인 후 정리
