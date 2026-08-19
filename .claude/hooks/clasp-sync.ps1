@@ -9,6 +9,6 @@ try {
 
 # push만 수행 — GAS 버전 200개 한도 소진 방지 (배포는 요청 시 수동 실행)
 # 수동 배포: clasp deploy --deploymentId <ID> --description "..."
-Push-Location "C:\Users\Administrator\Desktop\소모임플렛폼\관리툴"
+Push-Location "C:\Users\Administrator\Desktop\민규\소모임플렛폼\관리툴"
 clasp push --force
 Pop-Location

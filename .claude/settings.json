@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -NonInteractive -File \"C:\\Users\\ADMINI~1\\Desktop\\소모임~1\\CLAUDE~1\\hooks\\CLASP-~1.PS1\"",
+            "command": "powershell -NonInteractive -File \"C:\\Users\\Administrator\\Desktop\\민규\\소모임플렛폼\\.claude\\hooks\\clasp-sync.ps1\"",
             "shell": "powershell",
             "async": true,
             "timeout": 120,
