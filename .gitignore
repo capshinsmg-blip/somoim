@@ -1,0 +1,33 @@
+# ===== 비밀·자격증명 (절대 커밋 금지) =====
+# clasp 로그인 자격증명 — 보통 홈(~)에 있지만 프로젝트에 생기면 차단
+.clasprc.json
+.env
+.env.*
+*.env
+*.key
+*.pem
+credentials.json
+client_secret*.json
+service-account*.json
+
+# ===== clasp =====
+# .clasp.json 은 배포에 필요해서 '추적 유지'함 (여기서 무시하지 않음).
+# scriptId만 담겨 있고 자격증명은 위 .clasprc.json 에 있음.
+
+# ===== Claude Code 로컬 설정 (개인·머신별, 공유 안 함) =====
+.claude/settings.local.json
+
+# ===== 의존성 =====
+node_modules/
+
+# ===== OS·에디터 잡동사니 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+.vscode/
+.idea/
+
+# ===== 임시 파일 =====
+*.tmp
+*~
