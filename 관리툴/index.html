@@ -1064,7 +1064,8 @@ function openTelegramSettings(){
 
 function saveTg(){
   google.script.run
-    .withSuccessHandler(()=>{
+    .withSuccessHandler((r)=>{
+      if(r && r.success===false){ toast(r.message || '저장 실패'); return; }  // 입력검증 거절 메시지 표시 (S6)
       toast('알림 설정 저장됨 ✅');
       const tk = document.getElementById('tg-token');
       if(tk.value.trim()){ tk.value=''; tk.placeholder='저장돼 있어요 — 바꿀 때만 입력'; }

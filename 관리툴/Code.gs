@@ -178,16 +178,26 @@ function removeOperator(email) {
   return { success: true, operators: getOperators_() };
 }
 
-// ===== 텔레그램 알림 =====
-// 토큰·채팅ID는 Script Properties에만 저장 (공개 저장소에 노출 방지)
+// ===== 텔레그램 알림 (운영진 그룹으로 한 방향 발송 전용) =====
+// 토큰·채팅ID는 Script Properties에만 저장 — 코드·저장소·클라이언트 어디에도 노출 안 됨 (S1)
 function tgProps_() { return PropertiesService.getScriptProperties(); }
 
+// 입력 검증 (S6): 토큰 = <숫자ID>:<영숫자_-30자+>, chatId = 정수(그룹은 -100…)
+function isValidTgToken_(t)  { return /^\d{5,}:[A-Za-z0-9_-]{30,}$/.test(String(t || '')); }
+function isValidTgChatId_(c) { return /^-?\d{1,20}$/.test(String(c || '')); }
+
+// 텔레그램 API 호출 — fetch 예외 시 토큰이 박힌 URL이 로그(Stackdriver)로 새지 않도록 내부에서 삼킴 (S8)
 function tgApi_(token, method, payload) {
-  var res = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/' + method, {
-    method: 'post', contentType: 'application/json',
-    payload: JSON.stringify(payload || {}), muteHttpExceptions: true
-  });
-  try { return JSON.parse(res.getContentText()); } catch (e) { return { ok: false, description: '응답 파싱 실패' }; }
+  try {
+    var res = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/' + method, {
+      method: 'post', contentType: 'application/json',
+      payload: JSON.stringify(payload || {}), muteHttpExceptions: true
+    });
+    try { return JSON.parse(res.getContentText()); } catch (e) { return { ok: false, description: '응답 파싱 실패' }; }
+  } catch (e) {
+    // e.message 에 토큰이 담긴 URL이 포함될 수 있어 절대 로그로 남기지 않음 (S8)
+    return { ok: false, description: '네트워크 오류 — 잠시 후 다시 시도해주세요' };
+  }
 }
 
 function getTelegramSettings() {
@@ -204,8 +214,11 @@ function saveTelegramSettings(token, chatId, enabled) {
   requireAuth_();
   var p = tgProps_();
   token = String(token || '').trim();
+  chatId = String(chatId || '').trim();
+  if (token && !isValidTgToken_(token))    return { success: false, message: '봇 토큰 형식이 올바르지 않아요 (예: 123456789:AAH...)' };  // (S6)
+  if (chatId && !isValidTgChatId_(chatId)) return { success: false, message: '채팅 ID 형식이 올바르지 않아요 (숫자, 그룹은 -100…)' };      // (S6)
   if (token) p.setProperty('tgToken', token);   // 비워두면 기존 토큰 유지
-  p.setProperty('tgChatId', String(chatId || '').trim());
+  p.setProperty('tgChatId', chatId);
   p.setProperty('tgEnabled', enabled ? 'true' : 'false');
   return { success: true };
 }
@@ -215,6 +228,7 @@ function telegramDetectChatId(tokenOverride) {
   requireAuth_();
   var token = String(tokenOverride || '').trim() || tgProps_().getProperty('tgToken') || '';
   if (!token) return { success: false, message: '봇 토큰을 먼저 입력해주세요' };
+  if (!isValidTgToken_(token)) return { success: false, message: '봇 토큰 형식이 올바르지 않아요' };  // (S6)
   var r = tgApi_(token, 'getUpdates', { limit: 50 });
   if (!r.ok) return { success: false, message: '텔레그램 오류: ' + (r.description || '토큰을 확인해주세요') };
   var found = null;
@@ -232,7 +246,8 @@ function testTelegram(tokenOverride, chatOverride) {
   var token = String(tokenOverride || '').trim() || tgProps_().getProperty('tgToken') || '';
   var chatId = String(chatOverride || '').trim() || tgProps_().getProperty('tgChatId') || '';
   if (!token || !chatId) return { success: false, message: '토큰과 채팅 ID를 입력해주세요' };
-  var r = tgApi_(token, 'sendMessage', { chat_id: chatId, text: '🔔 소모임 관리툴 알림 테스트입니다. 이 메시지가 보이면 연동 성공!' });
+  if (!isValidTgToken_(token) || !isValidTgChatId_(chatId)) return { success: false, message: '토큰 또는 채팅 ID 형식이 올바르지 않아요' };  // (S6)
+  var r = tgApi_(token, 'sendMessage', { chat_id: chatId, text: '🔔 알림 연동 테스트입니다. 이 메시지가 보이면 연동 성공!' });  // 내부용어 제거 (S12)
   return r.ok ? { success: true } : { success: false, message: r.description || '발송 실패' };
 }
 
