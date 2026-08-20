@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#6C63E0; --purple-deep:#5b53d4; --brand:#5b56d6; --yellow:#FFD54A;
+    --ink:#2e2e46; --ink-soft:#5f5f7a; --lilac:#f0f0f7; --muted:#a0a0b8;
+    --before-bg:#e7e7f0; --before-tx:#8b8ba3;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#d9dbe9;font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;gap:30px;padding:30px}
+
+  .card{width:1080px;height:1350px;container-type:inline-size;position:relative;overflow:hidden;display:flex;flex-direction:column;padding:6.6cqw 6.4cqw}
+  .card.pp{background:var(--purple);color:#fff}
+  .card.lt{background:var(--lilac);color:var(--ink)}
+  .card.pp::before{content:"";position:absolute;right:-10cqw;top:-12cqw;width:44cqw;height:44cqw;border-radius:50%;background:rgba(255,255,255,.09)}
+  .card.pp::after{content:"";position:absolute;left:-12cqw;bottom:-14cqw;width:40cqw;height:40cqw;border-radius:50%;background:rgba(255,255,255,.06)}
+
+  .hd{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2}
+  .wm{font-weight:900;font-size:2.6cqw;letter-spacing:-.01em}
+  .pp .wm{color:#fff}.lt .wm{color:var(--brand)}
+  .pg{font-size:2.15cqw;font-weight:700;letter-spacing:.02em}
+  .lt .pg{color:#b7b7cc}
+  .pp .pg{color:rgba(255,255,255,.7)}
+
+  .mid{flex:1;display:flex;flex-direction:column;position:relative;z-index:2}
+  .mid.center{align-items:center;text-align:center;justify-content:center}
+  .mid.left{justify-content:center}
+
+  .pill{display:inline-block;align-self:flex-start;font-size:1.95cqw;font-weight:700;letter-spacing:.22em;padding:1.5cqw 3cqw;border-radius:100px;background:rgba(255,255,255,.16);color:#fff;margin-bottom:5cqw}
+  .eb{font-size:2.15cqw;font-weight:700;letter-spacing:.02em;color:var(--brand);margin-bottom:3cqw}
+  .step{display:inline-flex;align-items:center;gap:2cqw;align-self:flex-start;margin-bottom:3.4cqw}
+  .step .num{width:7.6cqw;height:7.6cqw;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:4cqw;font-weight:900}
+  .step .lab{font-size:2.35cqw;font-weight:900;letter-spacing:.16em;color:var(--brand)}
+
+  h1{font-weight:900;font-size:6.6cqw;line-height:1.32;letter-spacing:-.02em}
+  h1.sm{font-size:6cqw}
+  .y{color:var(--yellow)}
+  .pu{color:var(--brand)}
+  .dash{width:9cqw;height:.7cqw;border-radius:100px;background:var(--yellow);margin:4.5cqw 0}
+  .sub{font-size:2.7cqw;line-height:1.72;font-weight:500}
+  .pp .sub{color:rgba(255,255,255,.9)}.lt .sub{color:var(--ink-soft)}
+
+  .list{display:flex;flex-direction:column;gap:3cqw;margin-top:5cqw}
+  .row{display:flex;align-items:center;gap:3cqw}
+  .ic{flex:none;width:11cqw;height:11cqw;border-radius:3cqw;background:#e9e7fb;display:flex;align-items:center;justify-content:center;font-size:5cqw}
+  .row .t{font-size:2.85cqw;font-weight:500;line-height:1.44;color:var(--ink)}
+  .row .t b{font-weight:700;color:var(--brand)}
+
+  .ba{margin-top:4cqw}
+  .bc{background:#fff;border-radius:3.4cqw;padding:4cqw 4.4cqw}
+  .bc.after{border:.4cqw solid #d7d4fb}
+  .tag{display:inline-block;font-size:1.9cqw;font-weight:900;letter-spacing:.14em;padding:1.1cqw 2.6cqw;border-radius:100px;margin-bottom:2.4cqw}
+  .tag.b{background:var(--before-bg);color:var(--before-tx)}
+  .tag.a{background:var(--brand);color:#fff}
+  .bc .bt{font-size:2.9cqw;line-height:1.5;font-weight:700;color:#4a4a63}
+  .bc.after .bt{color:var(--ink)}
+  .bc .bt .pu{color:var(--brand)}
+  .arrow{display:flex;justify-content:center;font-size:4cqw;color:var(--brand);margin:1.6cqw 0}
+
+  .votes{display:flex;flex-direction:column;gap:3cqw;width:100%;margin-top:6cqw}
+  .vote{display:flex;align-items:center;justify-content:center;gap:3cqw;background:#fff;border-radius:100px;padding:3.6cqw;font-size:3.1cqw;font-weight:900;color:var(--purple-deep)}
+  .vote .em{font-size:4cqw}
+  .hero{font-size:9cqw;margin-bottom:3cqw}
+
+  .ft{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;font-size:2.3cqw;font-weight:700}
+  .pp .ft{color:rgba(255,255,255,.82)}
+  .lt .ft{color:#a2a2ba}
+  .ft .rt{font-size:3.4cqw}
+</style>
+</head>
+<body>
+
+  <!-- 01 표지 -->
+  <div class="card pp">
+    <div class="hd"><span class="wm">2030안산소모임 🏠</span></div>
+    <div class="mid left">
+      <span class="pill">START GUIDE</span>
+      <h1>처음 오셨나요?<br><span class="y">이렇게 시작해요</span></h1>
+      <div class="dash"></div>
+      <p class="sub">회원가입부터 첫 모임 참여까지,<br>딱 <b>3단계</b>면 끝나요. 🙆</p>
+    </div>
+    <div class="ft"><span>옆으로 넘겨보세요</span><span class="rt">👉</span></div>
+  </div>
+
+  <!-- 02 소개 -->
+  <div class="card lt">
+    <div class="hd"><span class="wm">2030안산소모임</span><span class="pg">02 / 07</span></div>
+    <div class="mid left">
+      <div class="eb">소모임이 뭐예요?</div>
+      <h1>안산 2030<br><span class="pu">취미·친목 플랫폼</span></h1>
+      <div class="list">
+        <div class="row"><span class="ic">🏃</span><span class="t">러닝·보드게임·맛집 등 <b>다양한 취미모임</b></span></div>
+        <div class="row"><span class="ic">🤝</span><span class="t">안산 사는 <b>또래(20~30대)</b>와 친목</span></div>
+        <div class="row"><span class="ic">🔒</span><span class="t"><b>회원제</b> — 검증된 멤버끼리 안전하게</span></div>
+      </div>
+    </div>
+    <div class="ft"><span>마음에 드는 모임에 신청하면 끝!</span></div>
+  </div>
+
+  <!-- 03 STEP 1 가입 -->
+  <div class="card lt">
+    <div class="hd"><span class="wm">2030안산소모임</span><span class="pg">03 / 07</span></div>
+    <div class="mid left">
+      <div class="step"><span class="num">1</span><span class="lab">STEP 1</span></div>
+      <h1>먼저 <span class="pu">회원가입</span>부터</h1>
+      <div class="list">
+        <div class="row"><span class="ic">💬</span><span class="t">홈 오른쪽 아래 <b>[문의하기]</b> 버튼 누르기</span></div>
+        <div class="row"><span class="ic">🙋</span><span class="t">오픈채팅에서 <b>가입하고 싶다고</b> 말하기</span></div>
+        <div class="row"><span class="ic">✅</span><span class="t">운영진이 확인 후 <b>가입을 도와드려요</b></span></div>
+      </div>
+    </div>
+    <div class="ft"><span>신청은 가입 회원만 가능해요 · 한 번만 가입!</span></div>
+  </div>
+
+  <!-- 04 STEP 2 신청 -->
+  <div class="card lt">
+    <div class="hd"><span class="wm">2030안산소모임</span><span class="pg">04 / 07</span></div>
+    <div class="mid left">
+      <div class="step"><span class="num">2</span><span class="lab">STEP 2</span></div>
+      <h1>마음에 드는 모임<br><span class="pu">신청하기</span></h1>
+      <div class="list">
+        <div class="row"><span class="ic">🔥</span><span class="t"><b>'모집중인 모임'</b>에서 관심 모임 고르기</span></div>
+        <div class="row"><span class="ic">👀</span><span class="t"><b>상세보기</b>로 장소·소개·지도 확인</span></div>
+        <div class="row"><span class="ic">✍️</span><span class="t"><b>[신청하기]</b> → 가입한 이름·연락처 입력</span></div>
+      </div>
+    </div>
+    <div class="ft"><span>🔒 신청 정보는 그 모임 리더에게만 전달돼요</span></div>
+  </div>
+
+  <!-- 05 STEP 3 결과확인·입장 (BEFORE→AFTER) -->
+  <div class="card lt">
+    <div class="hd"><span class="wm">2030안산소모임</span><span class="pg">05 / 07</span></div>
+    <div class="mid left">
+      <div class="step"><span class="num">3</span><span class="lab">STEP 3</span></div>
+      <h1 class="sm">승인되면 <span class="pu">톡방으로</span> 입장!</h1>
+      <div class="ba">
+        <div class="bc"><span class="tag b">BEFORE</span><div class="bt">"저 신청 됐나요?"<br>계속 기다리며 물어봤어요 😥</div></div>
+        <div class="arrow">▼</div>
+        <div class="bc after"><span class="tag a">AFTER</span><div class="bt"><span class="pu">📋 '내 신청 확인'</span>에서 승인 여부와<br>톡방 링크·입장코드를 바로 확인!</div></div>
+      </div>
+    </div>
+    <div class="ft"><span>링크와 4자리 입장코드로 오픈채팅 입장 🎉</span></div>
+  </div>
+
+  <!-- 06 부가 기능 -->
+  <div class="card lt">
+    <div class="hd"><span class="wm">2030안산소모임</span><span class="pg">06 / 07</span></div>
+    <div class="mid left">
+      <div class="eb">알아두면 좋아요</div>
+      <h1 class="sm">이런 것도 <span class="pu">할 수 있어요</span></h1>
+      <div class="list">
+        <div class="row"><span class="ic">💡</span><span class="t">열고 싶은 모임이 있다면 <b>리더 신청</b>으로 직접 개설</span></div>
+        <div class="row"><span class="ic">👑</span><span class="t">리더는 <b>'내 모임 참여자 확인'</b>으로 명단·성비 확인</span></div>
+        <div class="row"><span class="ic">📋</span><span class="t"><b>'내 신청 확인'</b>은 언제든 다시 볼 수 있어요</span></div>
+      </div>
+    </div>
+    <div class="ft"><span>리더가 되면 나만의 모임을 만들 수 있어요</span></div>
+  </div>
+
+  <!-- 07 마무리 -->
+  <div class="card pp">
+    <div class="hd"><span class="wm">2030안산소모임 🏠</span><span class="pg">07 / 07</span></div>
+    <div class="mid center">
+      <div class="hero">🎉</div>
+      <h1>자, 이제<br><span class="y">시작해볼까요?</span></h1>
+      <div class="votes">
+        <div class="vote"><span class="em">1️⃣</span><span>가입 문의 💬</span></div>
+        <div class="vote"><span class="em">2️⃣</span><span>모임 신청 ✍️</span></div>
+        <div class="vote"><span class="em">3️⃣</span><span>톡방 입장 🎉</span></div>
+      </div>
+    </div>
+    <div class="ft" style="justify-content:center"><span>궁금하면 💬 문의하기 · 첫 모임에서 만나요 🙌</span></div>
+  </div>
+
+</body>
+</html>
