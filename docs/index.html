@@ -173,6 +173,9 @@ textarea.in{height:84px;resize:none;line-height:1.5}
         <div><label>이름 *</label><input class="in" id="l-name" placeholder="가입 시 이름"></div>
         <div><label>연락처 *</label><input class="in" id="l-phone" type="tel" placeholder="01012345678"></div>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#666;margin:4px 0 2px;cursor:pointer;font-weight:500">
+        <input type="checkbox" id="l-anon" style="width:16px;height:16px;flex:none"> 🕶️ 리더명 비공개(익명)로 개설 — 공지문에 리더 이름이 안 떠요
+      </label>
       <label>모임명 *</label>
       <input class="in" id="l-ename" placeholder="예: 주말 보드게임 원정대">
       <label>분야 *</label>
@@ -445,6 +448,7 @@ function openApply(name){
 }
 function openLeader(){
   prefill('l'); hideErr('l-err');
+  var anonCb = document.getElementById('l-anon'); if(anonCb) anonCb.checked = false;
   showSheet('f-leader');
 }
 function openStatus(){
@@ -629,7 +633,8 @@ function submitLeader(){
   var d = { action:'leader', name:v('l-name'), phone:v('l-phone'), eventName:v('l-ename'), category:v('l-cat'),
             date1:v('l-d1'), date2:v('l-d2'), date3:v('l-d3'),
             location: mapInfo ? (desc + '\n' + mapInfo) : desc,
-            maxMembers:v('l-max'), intro:v('l-intro'), materials:v('l-mat'), chatLink:v('l-chat'), chatCode:v('l-chatcode') };
+            maxMembers:v('l-max'), intro:v('l-intro'), materials:v('l-mat'), chatLink:v('l-chat'), chatCode:v('l-chatcode'),
+            anon: document.getElementById('l-anon').checked ? 'Y' : '' };
   hideErr('l-err');
   if(!d.name||!d.phone||!d.eventName||!d.category||!d.date1||!d.location||!d.maxMembers||!d.intro||!d.chatLink||!d.chatCode){ showErr('l-err','missing'); return; }
   if(d.chatLink.indexOf('open.kakao.com') === -1){ showErr('l-err','bad_link'); return; }

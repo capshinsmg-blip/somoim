@@ -384,7 +384,12 @@ function doGet(e) {
         out.ok = true;
         out.leaderName = me.name;
         var myKey = me.name.replace(/\s/g, '');
-        var myEvents = getEvents_().filter(function(ev) { return String(ev.leader).replace(/\s/g, '') === myKey; });
+        // 리더 매칭: 연락처 우선(익명이어도 동작) → 없으면 이름(구버전 호환)
+        var myEvents = getEvents_().filter(function(ev) {
+          if (ev.leaderPhone && normalizePhone_(ev.leaderPhone) === rPhone) return true;
+          var ln = String(ev.leader).replace(/\s/g, '');
+          return ln !== '' && ln === myKey;
+        });
         var ws = getSheet('모임신청대기');
         var wd = ws ? ws.getDataRange().getValues() : [];
         out.meetings = myEvents.map(function(ev) {
@@ -654,13 +659,15 @@ function submitBoardLeaderApp(data) {
     return { success: false, code: 'bad_code' };
   }
   const leaderSheet = getOrCreateLeaderSheet_();
+  ensureLeaderAnonCol_(leaderSheet);
+  const isAnon = String(data.anon || '').trim().toUpperCase() === 'Y' ? 'Y' : '';
   leaderSheet.appendRow([
     Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss'),
     v.member.name, v.member.phone,
     data.eventName, data.category,
     data.date1 || '', data.date2 || '', data.date3 || '',
     data.location, data.maxMembers || '', data.intro, data.materials || '',
-    '대기중', chatLink, chatCode
+    '대기중', chatLink, chatCode, isAnon
   ]);
   setTextCell_(leaderSheet.getRange(leaderSheet.getLastRow(), 15), chatCode);  // 입장코드 앞자리 0 보존
   notifyTelegram_('💡 새 리더 신청\n• 모임: ' + data.eventName + ' (' + data.category + ')\n• 리더: ' + v.member.name + '\n• 1회차: ' + fmtKorDate_(data.date1) + (chatLink ? '\n• 톡방 링크 제출됨 ✅' : '') + '\n관리툴 → 리더신청에서 승인해주세요');
@@ -1253,7 +1260,8 @@ function getEvents_() {
     status: String(row[5] || '모집중'),
     description: String(row[6] || ''),
     chatLink: String(row[7] || ''),
-    chatCode: String(row[8] || '')
+    chatCode: String(row[8] || ''),
+    leaderPhone: String(row[9] || '')
   }));
 }
 
@@ -1262,6 +1270,14 @@ function ensureEventDescCol_() {
   const sheet = getSheet('모임목록');
   if (String(sheet.getRange(1, 7).getValue()) !== '소개') {
     sheet.getRange(1, 7).setValue('소개').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
+  }
+}
+
+// 모임목록 10번째 열(리더연락처) 헤더 보장 — 리더뷰 전화번호 매칭용 (공개 API엔 미노출)
+function ensureEventLeaderPhoneCol_() {
+  const sheet = getSheet('모임목록');
+  if (String(sheet.getRange(1, 10).getValue()) !== '리더연락처') {
+    sheet.getRange(1, 10).setValue('리더연락처').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
   }
 }
 
@@ -1895,6 +1911,15 @@ function getOrCreateLeaderSheet_() {
   return target;
 }
 
+// 리더신청 16번째 열(익명) 헤더 보장
+function ensureLeaderAnonCol_(sheet) {
+  var s = sheet || getSheet('리더신청');
+  if (!s) return;
+  if (String(s.getRange(1, 16).getValue() || '').trim() !== '익명') {
+    s.getRange(1, 16).setValue('익명').setFontWeight('bold').setBackground('#5b5bd6').setFontColor('white');
+  }
+}
+
 // 폼 응답이 "설문지 응답 시트*"로 들어오는 경우 자동 감지 후 "리더신청"으로 동기화
 function syncLeaderFormResponses_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1955,7 +1980,8 @@ function getLeaderApps() {
     supplies: String(row[11] || ''),
     status: String(row[12] || '대기중'),
     chatLink: String(row[13] || ''),
-    chatCode: String(row[14] || '')
+    chatCode: String(row[14] || ''),
+    anon: String(row[15] || '').trim().toUpperCase() === 'Y'
   }));
 }
 
@@ -1988,17 +2014,22 @@ function approveLeaderApp(rowId) {
   const sheet = getSheet('리더신청');
   var r = resolveRow_(sheet, rowId);
   if (r < 2) return { success: false, message: '리더 신청을 찾을 수 없어요. 새로고침 후 다시 시도해주세요' };
-  const row = sheet.getRange(r, 1, 1, 15).getValues()[0];
+  const row = sheet.getRange(r, 1, 1, 16).getValues()[0];   // 16열: 익명 플래그 포함
   const eventSheet = getSheet('모임목록');
   const dates = [row[5], row[6], row[7]].filter(d => d && String(d).trim() !== '');
   // 회차별로 쪼개지 않고 한 모임으로 묶어 생성 — 한 번 신청 = 전 회차 참석
   const dateStr = dates.map(d => fmtGasDate_(d)).join(' / ');
   ensureEventDescCol_();
   ensureEventChatCol_();
+  ensureEventLeaderPhoneCol_();
   // 같은 리더가 같은 모임명으로 재개설 시 기존 신청자가 딸려오지 않도록 기수(2기,3기…)를 붙여 구분
   const eventName = makeUniqueEventName_(String(row[3]).trim(), String(row[1]).trim());
-  // 리더가 제출한 오픈채팅 링크(14열)·입장코드(15열)를 모임목록 8·9열로 복사
-  eventSheet.appendRow([eventName, dateStr, row[8], row[9], row[1], '모집중', row[10], String(row[13] || '').trim(), String(row[14] || '').trim()]);
+  // 익명 리더: 모임목록 리더명(5열)을 비워 공개 표시에서 자동 생략 (매칭은 리더연락처로)
+  const isAnon = String(row[15] || '').trim().toUpperCase() === 'Y';
+  const leaderName = isAnon ? '' : String(row[1] || '');
+  const leaderPhone = String(row[2] || '');
+  // 오픈채팅 링크(14열)·입장코드(15열)를 모임목록 8·9열, 리더연락처는 10열로 복사
+  eventSheet.appendRow([eventName, dateStr, row[8], row[9], leaderName, '모집중', row[10], String(row[13] || '').trim(), String(row[14] || '').trim(), leaderPhone]);
   setTextCell_(eventSheet.getRange(eventSheet.getLastRow(), 9), String(row[14] || '').trim());  // 입장코드 앞자리 0 보존
   sheet.getRange(r, 13).setValue('승인');
   return { success: true };
