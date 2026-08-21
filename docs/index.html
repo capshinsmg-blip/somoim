@@ -435,7 +435,7 @@ function showDetailMapAt(el, lat, lng){
 }
 
 function showSheet(id){
-  ['f-apply','f-leader','f-status'].forEach(function(f){
+  ['f-apply','f-leader','f-status','f-leaderview'].forEach(function(f){
     document.getElementById(f).style.display = (f===id) ? 'block' : 'none';
   });
   document.getElementById('ov').classList.add('open');
